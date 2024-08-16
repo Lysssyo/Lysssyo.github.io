@@ -16,7 +16,7 @@ timezone: Asia/Shanghai
 
 title: Keith He # the main title
 
-tagline: This is a test.Following are Chinese_你好 # it will display as the sub-title
+tagline: This is Keith_He's Markdown Repositories # it will display as the sub-title
 
 description: >- # used by seo meta and the atom feed
   A minimal, responsive and feature-rich Jekyll theme for technical writing.
