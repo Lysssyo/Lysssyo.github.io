@@ -208,7 +208,8 @@ spring:
 
 为了展示多实例的效果，这里多启动一个实例
 
-<img src="/assets/微服务.assets/image-20240730222927014.png" alt="image-20240730222927014" style="zoom: 67%;" /><img src="微服务.assets/image-20240730223011397.png" alt="image-20240730223011397" style="zoom:67%;">
+<img src="/assets/微服务.assets/image-20240730222927014.png" alt="image-20240730222927014" style="zoom: 67%;" />
+<img src="/assets/微服务.assets/image-20240730223011397.png" alt="image-20240730223011397" style="zoom:67%;">
 
 启动两个实例后
 
@@ -540,7 +541,7 @@ spring:
     name: gateway
   cloud:
     nacos:
-      server-addr: 120.79.72.63:8848
+      server-addr: ip:8848
     gateway:
       routes:
         - id: item # 路由规则id，自定义，唯一
@@ -1326,7 +1327,7 @@ spring:
     active: local
   cloud:
     nacos:
-      server-addr: 120.79.72.63:8848
+      server-addr: ip:8848
       config:
         file-extension: yaml # 文件后缀名
         shared-configs: # 共享配置
