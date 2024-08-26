@@ -4,7 +4,6 @@ date: 2024-08-19 14:30:00 +0800
 categories: [Java, 微服务]
 tags: [Java, 微服务,SpringCloud,nacos,Sentinel,openFeign]
 ---
-# 微服务
 
 ## 1. 认识微服务
 

@@ -4,7 +4,6 @@ date: 2024-05-10 19:01:00 +0800
 categories: [Java, HttpRequest]
 tags: [Java, HttpRequest,apache,jsonResponse]
 ---
-# Java：通过HttpClient发起网络请求
 
 ​		概要：本文介绍Java中如何通过HttpClient发起网络请求——GET请求以及POST请求，以及利用Gson解析响应的方法。
 
