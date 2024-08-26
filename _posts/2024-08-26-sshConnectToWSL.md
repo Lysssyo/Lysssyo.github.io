@@ -1,5 +1,5 @@
 ---
-title: 微服务SSH连接WSL
+title: SSH连接WSL
 date: 2024-08-26 14:07:00 +0800
 categories: [WSL]
 tags: [WSL, SSH]
