@@ -4,9 +4,6 @@ date: 2024-09-08 01:14:00 +0800
 categories: [数据库, 高级]
 tags: [数据库, MySQL,CTE]
 ---
-# MySQL递归CTE
-
-复习MySQL的连接：https://blog.csdn.net/laodanqiu/article/details/131233741?ops_request_misc=&request_id=&biz_id=102&utm_term=mysql%20%E8%BF%9E%E6%8E%A5&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduweb~default-1-131233741.142^v100^control&spm=1018.2226.3001.4187
 
 ```sql
     WITH [RECURSIVE]
@@ -127,4 +124,5 @@ select * from temp_table order by temp_table.id, temp_table.orderby;
 
 ![image-20240908011157057](/assets/MySQL递归查询.assets/image-20240908011157057.png)
 
+复习MySQL的连接：https://blog.csdn.net/laodanqiu/article/details/131233741?ops_request_misc=&request_id=&biz_id=102&utm_term=mysql%20%E8%BF%9E%E6%8E%A5&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduweb~default-1-131233741.142^v100^control&spm=1018.2226.3001.4187
 
