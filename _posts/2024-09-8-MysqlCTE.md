@@ -1,215 +1,130 @@
 ---
-title: HttpClient
-date: 2024-05-10 19:01:00 +0800
-categories: [Java, HttpRequest]
-tags: [Java, HttpRequest,apache,jsonResponse]
+title: MySQL递归CTE
+date: 2024-09-08 01:14:00 +0800
+categories: [数据库, 高级]
+tags: [数据库, MySQL,CTE]
 ---
+# MySQL递归CTE
 
-​		概要：本文介绍Java中如何通过HttpClient发起网络请求——GET请求以及POST请求，以及利用Gson解析响应的方法。
+复习MySQL的连接：https://blog.csdn.net/laodanqiu/article/details/131233741?ops_request_misc=&request_id=&biz_id=102&utm_term=mysql%20%E8%BF%9E%E6%8E%A5&utm_medium=distribute.pc_search_result.none-task-blog-2~all~sobaiduweb~default-1-131233741.142^v100^control&spm=1018.2226.3001.4187
 
-## HttpClient简介
-
-​		HttpClient 是Apache Jakarta Common 下的子项目，可以用来提供高效的、最新的、功能丰富的支持 HTTP 协议的客户端编程工具包，并且它支持 HTTP 协议最新的版本和建议。
-
-## HttpClient发起GET请求
-
-​	使用之前需要导包：
-
-```xml
-<dependency>
-    <groupId>org.apache.httpcomponents</groupId>
-    <artifactId>httpclient</artifactId>
-    <version>4.5.13</version>
-</dependency>
+```sql
+    WITH [RECURSIVE]
+        cte_name [(col_name [, col_name] ...)] AS (subquery)
+        [, cte_name [(col_name [, col_name] ...)] AS (subquery)] ...
 ```
 
-> 使用maven
+> **`()`**：括号表示**必须**包含的部分。这意味着表达式中用括号包围的部分是执行时**必不可少**的。
+> 例如，`cte_name [(col_name [, col_name] ...)]` 中的 `cte_name` 必须提供，而 `subquery` 是一个必要的子查询。
+>
+> **`[]`**：方括号表示**可选**的部分。表达式中的这部分内容可以选择性地包含，也可以省略。
+> 例如，`[RECURSIVE]` 中的 `RECURSIVE` 是可选的，只有当你要定义递归CTE（Common Table Expression）时才使用。
+> 另外，`[(col_name [, col_name] ...)]` 中的列名列表也是可选的。**如果不显式指定列名，MySQL会使用子查询中的列名。**
 
-​		具体代码：
+### 例一
 
-```java
-public class GETDemo {
-    private static String url ="http://localhost:80/test";//请求的路径
-    
-    public static void main(String[] args) {
-        //创建一个默认配置的HttpClient实例。HttpClient是用来发送HTTP请求的
-        HttpClient httpClient = HttpClients.createDefault();
-        
-        //创建一个HttpGet对象（请求对象），用于表示即将发送的HTTP GET请求，url是请求的目的地址
-        HttpGet request=new HttpGet(url);       
+```sql
+WITH RECURSIVE cte (id, name) AS (
+    -- 基础部分 (非递归部分): 查询最高管理者
+    SELECT id, name FROM employees WHERE manager_id IS NULL
 
-        //发送HttpGet请求，并获取HttpResponse对象，该对象表示服务器响应
-        HttpResponse response = httpClient.execute(request);
+    UNION ALL
 
-        //HttpResponse对象中获取响应实体，即服务器返回的内容
-        HttpEntity responseEntity = response.getEntity();
-
-        //将响应实体从JSON形式转换为字符串形式
-        String jsonResponse = EntityUtils.toString(responseEntity);
-    }
-}
+    -- 递归部分: 查询管理层次
+    SELECT e.id, e.name 
+    FROM employees e
+    INNER JOIN cte ON e.manager_id = cte.id
+)
+-- 最终结果: 查询CTE中的所有数据
+SELECT * FROM cte;
 ```
 
-> 此时，jsonResponse里面存的就是响应结果，例如：
->
-> ![image-20240418213257555](/assets/HttpClient.assets/image-20240418213257555.png)
+示例数据：
 
-## HttpClient发起POST请求
+假设 `employees` 表如下：
 
-​		以带请求体，请求参数为JSON格式的为例：
+| id   | name  | manager_id |
+| ---- | ----- | ---------- |
+| 1    | Alice | NULL       |
+| 2    | Bob   | 1          |
+| 3    | Carol | 1          |
+| 4    | David | 2          |
+| 5    | Eve   | 2          |
 
-```java
-public class POSTDemo {
-    private static String url ="https://example.cn/showArticle";
-    public static void main(String[] args) {
-        //创建一个默认配置的HttpClient实例。HttpClient是用来发送HTTP请求的
-        HttpClient httpClient = HttpClients.createDefault();
+执行步骤：
 
-        //创建一个HttpPost对象，用于表示即将发送的HTTP POST请求，url是请求的目的地址
-        HttpPost request = new HttpPost(url);
+- **第一步**：找到所有没有上级的员工，即 `Alice`。
+- **第二步**：在 CTE 中，找到 `Alice` 的下属 `Bob` 和 `Carol`。
+- **第三步**：继续递归，找到 `Bob` 的下属 `David` 和 `Eve`。
 
-        //设置请求头，指定发送的内容类型为JSON，即告诉服务器，发送的数据是JSON格式的。
-        request.setHeader("Content-Type", "application/json");
+最终结果会是：
 
-        //设置请求体，下面是不导入第三方库的方法   
-        //首先，利用map集合将JSON格式的请求体存入
-        Map<String, Object> map = new HashMap<>();
-        map.put("param1", "value1");
-        map.put("param2", "value2");
-        
-        //利用StringBuilder将存了JSON格式的请求体改为字符串的形式
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("{");
-        for (Map.Entry<String, Object> entry : map.entrySet()) {
-            stringBuilder.append("\"").append(entry.getKey()).append("\":\"").append(entry.getValue()).append("\",");
-        }
-        stringBuilder.deleteCharAt(stringBuilder.length() - 1); 
-        stringBuilder.append("}");
-        String param = stringBuilder.toString();
-        //请求体param为：{"param1": "value1","param2": "value2"}
+| id   | name  |
+| ---- | ----- |
+| 1    | Alice |
+| 2    | Bob   |
+| 3    | Carol |
+| 4    | David |
+| 5    | Eve   |
 
-        //创建一个StringEntity对象，它将作为HTTP请求的实体，即请求的内容。
-        //这里将上面定义的JSON字符串作为实体内容，并指定字符编码为UTF-8
-        StringEntity entity = new StringEntity(param, StandardCharsets.UTF_8);
+结论：
 
-        //将StringEntity对象设置为HttpPost请求的实体，即添加请求内容
-        request.setEntity(entity);
+这段代码通过递归 CTE 展现了层次结构（比如公司组织架构）中的管理者和下属关系。
 
-        //发送HttpPost请求，并获取HttpResponse对象，该对象表示服务器响应
-        HttpResponse response = httpClient.execute(request);
+### 例二
 
-        //HttpResponse对象中获取响应实体，即服务器返回的内容
-        HttpEntity responseEntity = response.getEntity();
+```sql
+-- 定义递归临时表 temp_table，包含字段 id, name, label, parentid, is_show, orderby, is_leaf
+with recursive temp_table(id, name, label, parentid, is_show, orderby, is_leaf) as (
+  
+  -- 第一个查询，选择 id 为 '1' 的记录，作为递归的起始点
+  select * from course_category p where id = '1'
+  
+  -- 使用 UNION ALL 进行递归查询，将 parentid 匹配的记录加入结果
+  union all
+  
+  -- 递归查找course_category表中的parentID等于temp_table表的id的行
+  select t.* from course_category t
+  inner join temp_table on temp_table.id = t.parentid
+)
 
-        //将响应实体由JSON格式转换为字符串形式
-        String jsonResponse = EntityUtils.toString(responseEntity);
-    }
-}
+-- 最终选择所有结果，并根据 id 和 orderby 进行排序
+select * from temp_table order by temp_table.id, temp_table.orderby;
 ```
 
-> 请求体设置方法二：
->
-> ​		利用第三方库，将map转为JSON形式的字符串，不用自己手动用StringBuilder拼接
->
-> ​		首先引入第三方库：
->
-> ```xml
->         <!--这个库用于将map转为json形式的字符串-->
->         <dependency>
->             <groupId>com.google.code.gson</groupId>
->             <artifactId>gson</artifactId>
->             <version>2.8.9</version>
->         </dependency>
-> ```
->
-> 
->
-> ```java
->         //请求体设置的方法二：
->         Map<String, String> map = new HashMap<>();
->         map.put("param1", "value1");
->         map.put("param2", "value2");
->         Gson gson = new Gson();
->         String param = gson.toJson(map);
-> ```
+示例数据：
 
+假设 `course_category` 表如下：
 
+| id      | name       | label      | parentid | is_show | orderby | is_leaf |
+| ------- | ---------- | ---------- | -------- | ------- | ------- | ------- |
+| 1       | 根结点     | 根结点     | 0        | 1       | 1       | 0       |
+| 1-1     | 前端开发   | 前端开发   | 1        | 1       | 1       | 0       |
+| 1-1-1   | HTML/CSS   | HTML/CSS   | 1-1      | 1       | 1       | 1       |
+| 1-1-10  | 其它       | 其它       | 1-1      | 1       | 10      | 1       |
+| 1-1-2   | JavaScript | JavaScript | 1-1      | 1       | 2       | 1       |
+| 1-1-3   | jQuery     | jQuery     | 1-1      | 1       | 3       | 1       |
+| 1-1-4   | ExtJS      | ExtJS      | 1-1      | 1       | 4       | 1       |
+| 1-1-5   | AngularJS  | AngularJS  | 1-1      | 1       | 5       | 1       |
+| 1-1-6   | ReactJS    | ReactJS    | 1-1      | 1       | 6       | 1       |
+| 1-1-7   | Bootstrap  | Bootstrap  | 1-1      | 1       | 7       | 1       |
+| 1-1-8   | Node.js    | Node.js    | 1-1      | 1       | 8       | 1       |
+| 1-1-9   | Vue        | Vue        | 1-1      | 1       | 9       | 1       |
+| 1-10    | 研发管理   | 研发管理   | 1        | 1       | 10      | 0       |
+| 1-10-1  | 敏捷开发   | 敏捷开发   | 1-10     | 1       | 1       | 1       |
+| 1-10-2  | 软件设计   | 软件设计   | 1-10     | 1       | 2       | 1       |
+| 1-10-3  | 软件测试   | 软件测试   | 1-10     | 1       | 3       | 1       |
+| 1-10-4  | 研发管理   | 研发管理   | 1-10     | 1       | 4       | 1       |
+| 1-10-5  | 其它       | 其它       | 1-10     | 1       | 5       | 1       |
+| 1-11    | 系统运维   | 系统运维   | 1        | 1       | 11      | 0       |
+| 1-11-1  | Linux      | Linux      | 1-11     | 1       | 1       | 1       |
+| 1-11-10 | 其它       | 其它       | 1-11     | 1       | 10      | 1       |
+| 1-11-2  | Windows    | Windows    | 1-11     | 1       | 2       | 1       |
+| 1-11-3  | UNIX       | UNIX       | 1-11     | 1       | 3       | 1       |
+| 1-11-4  | Mac OS     | Mac OS     | 1-11     | 1       | 4       | 1       |
 
-## 利用Gson解析响应结果
+最终结果会是：
 
-​		以这个响应结果为例：
-
-> 假设通过上例通过HttpClient发起POST请求`jsonResponse`接收到了以下内容
-
-```json
-{
-    "code": 1,
-    "msg": "success",
-    "data": [
-        {
-            "url": "https://example1.com",           
-            "tittle": "在外企工作是什么体验？高薪且不卷，愿意干到退休！",
-            "hasImage": 1
-        },
-        {
-            "url": "https://example2.com",
-            "tittle": "广东清明假期连续暴雨+强对流天气！这些安全知识你必须知道→",
-            "hasImage": 1
-        },
-        {
-            "url": "https://example3.com",
-            "tittle": "前方高能！有“猛兽”出现！",
-            "hasImage": 0
-        },
-        {
-            "url": "https://example4.com",
-            "tittle": "西电访学 | 笃行致远，“码”到西电",
-            "hasImage": 0
-        }
-    ]
-}
-```
-
-​		要使用Gson解析这个JSON字符串，首先需要定义一个Java类，它的字段与JSON对象中的键对应。然后，可以使用Gson库将JSON字符串解析为这个类的实例。	
-
-```java
-public class ResponseData {
-    private int code;
-    private String msg;
-    private List<Article> data;
-
-    // 省略 getter 和 setter 方法
-
-    public static class Article {
-        private String url;
-        private String title;
-        private int hasImage;
-
-        // 省略 getter 和 setter 方法
-    }
-}
-```
-
-​		解析`jsonResponse`：
-
-```java
-        Gson gson2 = new GsonBuilder().create();
-        Type responseType = new TypeToken<ResponseData>() {
-        }.getType();
-		//创建一个TypeToken的匿名子类实例，并调用了它的getType()方法。
-		//TypeToken是Gson库中的一个类，用于在运行时获取泛型类型的信息。
-		//在这个例子中，我们想要解析的JSON数据对应于ResponseData类，这个类包含一个泛型列表List<Article>。由于Java的类型擦除，我们需要使用TypeToken来捕获这个泛型类型的信息。getType()方法返回了一个Type对象，这个对象代表了ResponseData类的泛型类型。
-        ResponseData responseData = gson2.fromJson(jsonResponse, responseType);
-
-        System.out.println("Code: " + responseData.getCode());
-        System.out.println("Message: " + responseData.getMsg());
-        for (ResponseData.Article article : responseData.getData()) {
-            System.out.println("URL: " + article.getUrl());
-            System.out.println("Title: " + article.getTitle());
-            System.out.println("Has Image: " + article.getHasImage());
-            System.out.println();
-        }
-```
-
+![image-20240908011157057](/assets/MySQL递归查询.assets/image-20240908011157057.png)
 
 
