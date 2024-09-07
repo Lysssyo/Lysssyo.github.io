@@ -125,7 +125,7 @@ make --version
 
    `Makefile` 用来自动化编译过程。在当前目录下创建一个名为 `Makefile` 的文件，内容如下：
 
-   ```Makefile
+   ```
    # obj-m 表示要编译的目标模块。hello.o 是我们要编译的内核模块目标。
    obj-m += hello.o
    
