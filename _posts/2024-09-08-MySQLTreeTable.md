@@ -246,7 +246,7 @@ tags: [数据库, MySQL]
 
 重点在于**`childrenTreeNodes`数组**的处理，前端接收到数据后，会做如下展示：
 
-<img src="树形表以及树形表转JSON数组.assets/image-20240908112909752.png" alt="image-20240908112909752" style="zoom:80%;" />
+<img src="/assets/树形表以及树形表转JSON数组.assets/image-20240908112909752.png" alt="image-20240908112909752" style="zoom:80%;" />
 
 下面，给出数据库持久层对象转为以上json数据的代码
 
