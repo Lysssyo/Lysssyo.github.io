@@ -1,7 +1,7 @@
 ---
 title: HttpClient
 date: 2024-05-10 19:01:00 +0800
-categories: [Java, HttpRequest]
+categories: [Java, JavaWeb]
 tags: [Java, HttpRequest,apache,jsonResponse]
 ---
 

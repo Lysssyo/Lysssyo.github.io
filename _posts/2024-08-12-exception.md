@@ -1,7 +1,7 @@
 ---
 title: 全局异常处理器
 date: 2024-08-12 22:05:00 +0800
-categories: [Java, SpringBoot]
+categories: [Java, JavaWeb]
 tags: [SpringBoot, RestControllerAdvice]
 ---
 ## @RestControllerAdvice与@ExceptionHandler实现全局异常处理

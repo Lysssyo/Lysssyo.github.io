@@ -1,7 +1,7 @@
 ---
 title: MessageQueue
 date: 2024-08-24 21:02:00 +0800
-categories: [Java, MessageQueue]
+categories: [中间件, MessageQueue]
 tags: [Java, MessageQueue,RabbitMQ,SpringAMOP]
 ---
 [‌⁠‍‌‍‌MQ基础 - 飞书云文档 (feishu.cn)](https://b11et3un53m.feishu.cn/wiki/OQH4weMbcimUSLkIzD6cCpN0nvc)

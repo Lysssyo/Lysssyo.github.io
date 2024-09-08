@@ -1,7 +1,7 @@
 ---
 title: vue项目下载依赖报错解决方法
 date: 2024-09-4 9:05:00 +0800
-categories: [npm, 前端]
+categories: [前端, 包管理]
 tags: [npm, yarn,前端]
 ---
 一般使用npm通过`npm install`下载依赖，如果下载依赖报错，删除`node_modules`重新下载。

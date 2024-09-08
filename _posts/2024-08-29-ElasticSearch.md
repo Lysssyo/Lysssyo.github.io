@@ -1,7 +1,7 @@
 ---
 title: ElasticSearch
 date: 2024-08-29 15:10:00 +0800
-categories: [Java, ElasticSearch]
+categories: [中间件, ElasticSearch]
 tags: [Java, ElasticSearch,DSL,RestClient]
 ---
 
