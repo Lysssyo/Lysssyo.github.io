@@ -4,7 +4,6 @@ date: 2024-09-10 22:43:00 +0800
 categories: [Java, Grammar]
 tags: [Java, Grammar,classPath]
 ---
-# 类路径与相对路径
 
 ## 1. 类路径
 
