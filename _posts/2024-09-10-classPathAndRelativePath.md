@@ -54,7 +54,7 @@ public class LogFilePathChecker {
 
 ## 3. 补充pom的相对路径
 
-![image-20240910225455065](路径.assets/image-20240910225455065.png)
+![image-20240910225455065](/assets/路径.assets/image-20240910225455065.png)
 
 `../xuecheng-plus-parent` 表示相对路径的定位是从当前模块的 `pom.xml` 文件所在的目录向上一级，然后进入 `xuecheng-plus-parent` 目录，从那里找到父项目的 `pom.xml`。
 
