@@ -141,6 +141,7 @@ public class CommonExceptionAdvice {
 ```
 
 > `ResponseEntity`在`org.springframework.http`包下
+>
 > 注意全局异常处理器要放在启动类所在包或其子包下，如果不在启动类所在包或启动类所在包的子包，需要声明包扫描。
 >
 > 例如，`CommonExceptionAdvice`在`com.hmall.advice`下，而启动类在`com.hmall.cart`下，所以启动类需要声明包扫描：
