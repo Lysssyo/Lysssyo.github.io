@@ -57,6 +57,8 @@ Content-Type: application/octet-stream
 
 <img src="/assets/上传文件至Minio，上传文件信息至数据库.assets/image-20240912201351765.png" alt="image-20240912201351765" style="zoom:67%;" />
 
+- `id`由service传递根据具体文件生成
+
 - `company_id`由Controller向service传递
 
 - `filename`由Controller封装到`uploadFileParamsDto`向service传递
