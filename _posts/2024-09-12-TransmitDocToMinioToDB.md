@@ -23,7 +23,7 @@ tags: [Java, JavaWeb]
 
 示例请求：
 
-```http
+```
 POST {{media_host}}/media/upload/coursefile
 Content-Type: multipart/form-data; boundary=WebAppBoundary
 
