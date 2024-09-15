@@ -74,6 +74,8 @@ Cat is eating cat food.
 
 ### 3.2 使用匿名内部类实现接口
 
+**例一：**使用匿名内部类实现上面的`Animal`接口
+
 我们可以使用匿名内部类来实现同样的功能，而无需专门定义 `Cat` 类。代码如下：
 
 ```java
@@ -146,25 +148,42 @@ you can see owner's pet is eating:
 Look:cat is eating cat food
 ```
 
+**例二：**使用匿名内部类实现`Runnable`接口
+
+```java
+public class Main {
+    public static void main(String[] args) {
+        // 使用匿名内部类实现Runnable接口
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Running in a separate thread.");
+            }
+        };
+
+        // 创建一个线程并启动
+        Thread thread = new Thread(runnable);
+        thread.start();
+    }
+}
+```
+
+匿名内部类实现了`Runnable`接口，`runnable`是匿名内部类的一个实例对象
+
 ### 3.3 匿名内部类的本质
 
 在上面的匿名内部类中：
 
 ```java
-new Animal() {
+        Runnable runnable = new Runnable() {
             @Override
-            public void eat() {
-                System.out.println("cat is eating cat food");
+            public void run() {
+                System.out.println("Running in a separate thread.");
             }
-
-            @Override
-            public void sleep() {
-                System.out.println("don't sleep at night");
-            }
-        }
+        };
 ```
 
-实际上，这段代码等价于创建了 `Animal` 接口的一个**实现类实例**，只不过这个实现类是**匿名的**，没有明确的类名，它的定义直接嵌入到方法调用中。
+实际上，这段代码等价于创建了 `Runnable` 接口的一个**实现类实例**，只不过这个实现类是**匿名的**，没有明确的类名，它的定义直接嵌入到方法调用中。
 
 ## 4.匿名内部类的其他用途
 
@@ -265,4 +284,3 @@ void testAnonymousInnerClassInheritingAbstractClass() {
 ```
 
 在这两种情况下，匿名内部类可以继承普通类或抽象类，并且可以重写父类的方法。对于抽象类，匿名内部类**必须实现所有抽象方法**。
-
