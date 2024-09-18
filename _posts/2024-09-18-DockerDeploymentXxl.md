@@ -4,7 +4,7 @@ date: 2024-09-18 18:33:00 +0800
 categories: [Docker, Deployment]
 tags: [Docker, Deployment]
 ---
-官方文档：[xuxueli/xxl-job-admin - Docker Image | Docker Hub](https://hub.docker.com/r/xuxueli/xxl-job-admin)
+官方文档：https://hub.docker.com/r/xuxueli/xxl-job-admin
 
 ```
 docker run -d \
