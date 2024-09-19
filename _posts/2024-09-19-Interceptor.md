@@ -4,14 +4,156 @@ date: 2024-09-19 15:11:00 +0800
 categories: [Java, JavaWeb]
 tags: [Java, JavaWeb,拦截器]
 ---
+## 1. 使用步骤
+
 拦截器的使用分为两步：自定义拦截器以及注册拦截器。
+
+**具体如下：**
+
+1. 自定义拦截器
+
+   ```java
+   @Component
+   //定义拦截器类，实现HandlerInterceptor接口
+   //注意当前类必须受Spring容器控制
+   public class ProjectInterceptor implements HandlerInterceptor {
+       @Override
+       //原始方法调用前执行的内容
+       public boolean preHandle(HttpServletRequest request,
+                                HttpServletResponse response, 
+                                Object handler) throws Exception {
+           System.out.println("preHandle...");
+           return true;
+       }
+   
+       @Override
+       //原始方法调用后执行的内容
+       public void postHandle(HttpServletRequest request, 
+                              HttpServletResponse response, 
+                              Object handler, ModelAndView modelAndView) throws Exception {
+           System.out.println("postHandle...");
+       }
+   
+       @Override
+       //原始方法调用完成后执行的内容
+       public void afterCompletion(HttpServletRequest request,
+                                   HttpServletResponse response, 
+                                   Object handler, Exception ex) throws Exception {
+           System.out.println("afterCompletion...");
+       }
+   }
+   ```
+
+   > **非常重要：拦截器类要被SpringMVC容器扫描到。**
+   >
+   > 拦截器中的`preHandler`方法，如果返回true，则代表放行，会执行原始Controller类中要请求的方法；如果返回false，则代表拦截，后面的就不会再执行了。
+
+2. 注册拦截器
+
+   ```java
+   @Configuration
+   @Slf4j
+   public class WebMvcConfiguration extends WebMvcConfigurationSupport {
+   
+       @Autowired
+       private JwtTokenAdminInterceptor jwtTokenAdminInterceptor;
+   
+       // 注册自定义拦截器
+       protected void addInterceptors(InterceptorRegistry registry) {
+           log.info("开始注册自定义拦截器...");
+           registry.addInterceptor(ProjectInterceptor)
+                   .addPathPatterns("/admin/**")
+                   .excludePathPatterns("/admin/employee/login");
+       }
+   }
+   ```
+
+
+
+## 2. 拦截器参数
+
+**原始方法之前运行preHandle**
+
+```java
+public boolean preHandle(HttpServletRequest request,
+                         HttpServletResponse response,
+                         Object handler) throws Exception {
+    System.out.println("preHandle");
+    return true;
+}
+```
+
+* request：请求对象
+* response：响应对象
+* handler：被调用的处理器对象，本质上是一个方法对象，对反射中的Method对象进行了再包装
+
+使用request对象可以获取请求数据中的内容，如获取请求头的`Content-Type`
+
+```java
+public boolean preHandle(HttpServletRequest request, 
+                         HttpServletResponse response, 
+                         Object handler) throws Exception {
+    String contentType = request.getHeader("Content-Type");
+    System.out.println("preHandle..."+contentType);
+    return true;
+}
+```
+
+使用handler参数，可以获取方法的相关信息
+
+```java
+public boolean preHandle(HttpServletRequest request, 
+                         HttpServletResponse response, 
+                         Object handler) throws Exception {
+    HandlerMethod hm = (HandlerMethod)handler;
+    String methodName = hm.getMethod().getName();//可以获取方法的名称
+    System.out.println("preHandle..."+methodName);
+    return true;
+}
+```
+
+**后置处理方法postHandle**
+
+原始方法运行后运行，如果原始方法被拦截，则不执行
+
+```java
+public void postHandle(HttpServletRequest request,
+                       HttpServletResponse response,
+                       Object handler,
+                       ModelAndView modelAndView) throws Exception {
+    System.out.println("postHandle");
+}
+```
+
+前三个参数和上面的是一致的。
+
+`modelAndView`：如果处理器执行完成具有返回结果，可以读取到对应数据与页面信息，并进行调整。但是因为咱们现在都是返回json数据，所以该参数的使用率不高。
+
+**完成处理方法**
+
+拦截器最后执行的方法，无论原始方法是否执行
+
+```java
+public void afterCompletion(HttpServletRequest request,
+                            HttpServletResponse response,
+                            Object handler,
+                            Exception ex) throws Exception {
+    System.out.println("afterCompletion");
+}
+```
+
+前三个参数与上面的是一致的。
+
+`ex`：如果处理器执行过程中出现异常对象，可以针对异常情况进行单独处理 。因为我们现在已经有全局异常处理器类，所以该参数的使用率也不高。这三个方法中，最常用的是==preHandle==，在这个方法中可以通过返回值来决定是否要进行放行，我们可以把业务逻辑放在该方法中，如果满足业务则返回true放行，不满足则返回false拦截。
+
+## 3. 具体示例
 
 **示例：**登录校验
 
 ```java
 @Component
 @Slf4j
-// 自定义拦截器
+// 1.自定义拦截器
 public class JwtTokenAdminInterceptor implements HandlerInterceptor {
 
     @Autowired
@@ -21,7 +163,9 @@ public class JwtTokenAdminInterceptor implements HandlerInterceptor {
      * 校验jwt
      */
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+    public boolean preHandle(HttpServletRequest request, 
+                             HttpServletResponse response, 
+                             Object handler) throws Exception {
         //判断当前拦截到的是Controller的方法还是其他资源
         if (!(handler instanceof HandlerMethod)) {
             //当前拦截到的不是动态方法，直接放行
@@ -37,7 +181,7 @@ public class JwtTokenAdminInterceptor implements HandlerInterceptor {
             Claims claims = JwtUtil.parseJWT(jwtProperties.getAdminSecretKey(), token);
             Long empId = Long.valueOf(claims.get(JwtClaimsConstant.EMP_ID).toString());
             log.info("当前员工id：{}", empId);
-            BaseContext.setCurrentId(empId);
+            BaseContext.setCurrentId(empId);//员工Id存BaseContest
             //3、通过，放行
             return true;
         } catch (Exception ex) {
@@ -119,11 +263,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
     @Autowired
     private JwtTokenAdminInterceptor jwtTokenAdminInterceptor;
 
-    /**
-     * 注册自定义拦截器
-     *
-     * @param registry
-     */
+    // 2.注册自定义拦截器
     protected void addInterceptors(InterceptorRegistry registry) {
         log.info("开始注册自定义拦截器...");
         registry.addInterceptor(jwtTokenAdminInterceptor)
@@ -143,7 +283,72 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 | /depts/*  | /depts下的一级路径   | 能匹配/depts/1，不能匹配/depts/1/2，/depts          |
 | /depts/** | /depts下的任意级路径 | 能匹配/depts，/depts/1，/depts/1/2，不能匹配/emps/1 |
 
+## 4.  拦截器链
 
+**1. 创建拦截器类**
+
+```java
+@Component
+public class ProjectInterceptor2 implements HandlerInterceptor {
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        System.out.println("preHandle...222");
+        return false;
+    }
+
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+        System.out.println("postHandle...222");
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        System.out.println("afterCompletion...222");
+    }
+}
+```
+
+**2. 配置拦截器类**
+
+```java
+@Configuration
+public class SpringMvcConfig implements WebMvcConfigurer {
+    @Autowired
+    private ProjectInterceptor projectInterceptor;
+    @Autowired
+    private ProjectInterceptor2 projectInterceptor2;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        //配置多拦截器
+        registry.addInterceptor(projectInterceptor)
+            	.addPathPatterns("/books","/books/*");
+        registry.addInterceptor(projectInterceptor2)
+            	.addPathPatterns("/books","/books/*");
+    }
+}
+```
+
+运行程序，观察顺序：
+
+![1630680435269](/assets/拦截器Interceptor.assets/1630680435269.png)
+
+拦截器执行的顺序是和配置顺序有关。就和前面所提到的运维人员进入机房的案例，先进后出。
+
+* 当配置多个拦截器时，形成拦截器链
+* 拦截器链的运行顺序参照拦截器添加顺序为准
+* 当拦截器中出现对原始处理器的拦截，后面的拦截器均终止运行
+* 当拦截器运行中断，仅运行配置在前面的拦截器的afterCompletion操作
+
+![1630680579735](/assets/拦截器Interceptor.assets/1630680579735.png)
+
+preHandle：与配置顺序相同，必定运行
+
+postHandle：与配置顺序相反，可能不运行
+
+afterCompletion：与配置顺序相反，可能不运行。
+
+这个顺序不太好记，最终只需要把握住一个原则即可:==以最终的运行结果为准==
 
 ## 补充：JWT令牌
 
@@ -471,4 +676,3 @@ public class LoginController {
 我们在发起一个查询部门数据的请求，此时我们可以看到在请求头中包含一个token(JWT令牌)，后续的每一次请求当中，都会将这个令牌携带到服务端。
 
 ![image-20230106214331443](/assets/拦截器Interceptor.assets/image-20230106214331443.png)
-
