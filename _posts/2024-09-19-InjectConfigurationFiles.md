@@ -98,9 +98,9 @@ sky:
 sky:
   alioss:
     endpoint: oss-cn-guangzhou.aliyuncs.com
-    access-key-id: DemoAccessKeyId
-    access-key-secret: DemoAccessSecret
-    bucket-name: lysssyo-sky
+    access-key-id: #DemoAccessKeyId
+    access-key-secret: #DemoAccessSecret
+    bucket-name: #lysssyo-sky
 ```
 
 **总结：**
