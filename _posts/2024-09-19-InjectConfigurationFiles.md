@@ -98,8 +98,8 @@ sky:
 sky:
   alioss:
     endpoint: oss-cn-guangzhou.aliyuncs.com
-    access-key-id: LTAI5tFdCUtu297cx5P8ZgU6
-    access-key-secret: xtlsguEjpoVm0NithT6BrnnC4QaU73
+    access-key-id: DemoAccessKeyId
+    access-key-secret: DemoAccessSecret
     bucket-name: lysssyo-sky
 ```
 
