@@ -1465,7 +1465,9 @@ public class CartProperties {
 [官方文档：introduction | Sentinel (sentinelguard.io)](https://sentinelguard.io/zh-cn/docs/introduction.html)
 
 Sentinel 的使用可以分为两个部分：
+
 核心库(Jar包)：不依赖任何框架/库，能够运行于 Java8 及以上的版本的运行时环境，同时对Dubbo/Spring cloud 等框架也有较好的支持。在项目中引入依赖即可实现服务限流、隔离、熔断等功能。
+
 控制台(Dashboard)：Dashboard 主要负责管理推送规则、监控、管理机器信息等。
 
 > jar启动命令
