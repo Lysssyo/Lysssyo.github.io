@@ -1480,7 +1480,7 @@ Sentinel 的使用可以分为两个部分：
 
 1）引入sentinel依赖
 
-```XML
+```
 <!--sentinel-->
 <dependency>
     <groupId>com.alibaba.cloud</groupId> 
@@ -1492,7 +1492,7 @@ Sentinel 的使用可以分为两个部分：
 
 修改application.yaml文件，添加下面内容：
 
-```YAML
+```
 spring:
   cloud: 
     sentinel:
@@ -1513,12 +1513,12 @@ spring:
 > 所谓簇点链路，就是单机调用链路，是一次请求进入服务后经过的每一个被`Sentinel`监控的资源。默认情况下，`Sentinel`会监控`SpringMVC`的每一个`Endpoint`（接口）。
 >
 > 因此，我们看到`/carts`这个接口路径就是其中一个簇点，我们可以对其进行限流、熔断、隔离等保护措施。
-
+a
 此外，我们可以选择打开Sentinel的请求方式前缀，把`请求方式 + 请求路径`作为簇点资源名：
 
 在`cart-service`的`application.yml`中添加下面的配置：
 
-```YAML
+```
 spring:
   cloud:
     sentinel:
