@@ -4,7 +4,6 @@ date: 2024-09-23 20:05:00 +0800
 categories: [Nginx]
 tags: [Nginx, 杂记]
 ---
-# MultipartSupportConfig
 
 ```java
 @Configuration
