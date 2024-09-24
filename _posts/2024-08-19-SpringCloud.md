@@ -1616,7 +1616,7 @@ public class ItemClientFallback implements FallbackFactory<ItemClient> {
 <img src="/assets/微服务.assets/image-20240818193957599.png" alt="image-20240818193957599" style="zoom:80%;">
 
 
-> 也可以直接在`ItemClientFallback`类上加`@Bean`注解
+> 也可以直接在`ItemClientFallback`类上加`@Component`注解
 
 4. 在`hm-api`模块中的`ItemClient`接口中使用`ItemClientFallbackFactory`
 
