@@ -212,7 +212,7 @@ web表单的对应的AuthenticationProvider实现类为DaoAuthenticationProvider
 
    > DaoAuthenticationProvider的源代码如下：
    >
-   > <img src="SpringSecurity实现登录认证与授权.assets/image-20240925193513898.png" alt="image-20240925193513898" style="zoom: 50%;" />
+   > <img src="/assets/SpringSecurity实现登录认证与授权.assets/image-20240925193513898.png" alt="image-20240925193513898" style="zoom: 50%;" />
 
    UserDetailsService是一个接口，如下：
 
