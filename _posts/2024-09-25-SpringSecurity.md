@@ -60,6 +60,21 @@ web表单的对应的AuthenticationProvider实现类为DaoAuthenticationProvider
 
 2. 基础配置
 
+   **配置文件：**只用配置database
+
+   ```yaml
+   server:
+     servlet:
+       context-path: /auth
+     port: 63070
+   spring:
+     datasource:
+       driver-class-name: com.mysql.cj.jdbc.Driver
+       url: jdbc:mysql://localhost:3306/xcplus_users?serverTimezone=UTC&userUnicode=true&useSSL=false&
+       username: root
+       password: 123
+   ```
+
    **`AuthorizationServer`类：**
 
    ```java
@@ -80,7 +95,7 @@ web表单的对应的AuthenticationProvider实现类为DaoAuthenticationProvider
                    .withClient("XcWebApp")// client_id
                    //.secret("XcWebApp")//客户端密钥
                    .secret(new BCryptPasswordEncoder().encode("XcWebApp"))//客户端密钥
-                   .resourceIds("xuecheng-plus")//资源列表
+                   .resourceIds("xuecheng-plus") //资源服务标识
                    .authorizedGrantTypes("authorization_code", "password", "client_credentials",
                                          "implicit", "refresh_token")
                // 该client允许的授权类型authorization_code,password,refresh_token,implicit,client_credentials
@@ -116,6 +131,8 @@ web表单的对应的AuthenticationProvider实现类为DaoAuthenticationProvider
    ```
    POST {{auth_host}}/auth/oauth/token?client_id=XcWebApp&client_secret=XcWebApp&grant_type=password&username=t1&password=111111
    ```
+
+   > `/auth`是由配置文件中的`server.servlet.context-path`决定的
 
    **`TokenConfig`类：**
 
@@ -381,8 +398,8 @@ Connection: keep-alive
 
 > ```json
 > "aud": [
->     "xuecheng-plus"
->   ]
+>  "xuecheng-plus"
+> ]
 > ```
 >
 > 来源自`AuthorizationServer`的`configure(ClientDetailsServiceConfigurer clients)`方法配置的资源列表
@@ -473,17 +490,717 @@ public class UserServiceImpl implements UserDetailsService {
 
 ## 5. 携带jwt令牌访问资源
 
+### 5.1 jwt令牌认证
 
+业务背景：
 
-## 6. 网关
+1. **资源文件所在的微服务引入SpringSecurity依赖**
 
+   ```xml
+   <!--认证相关-->
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-security</artifactId>
+   </dependency>
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-oauth2</artifactId>
+   </dependency>
+   ```
 
+2. **基础配置**
+
+   **`ResouceServerConfig`类：**
+
+   ```java
+   @Configuration
+   @EnableResourceServer
+   @EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
+   public class ResouceServerConfig extends ResourceServerConfigurerAdapter {
+   
+       //资源服务标识
+       public static final String RESOURCE_ID = "xuecheng-plus";
+   
+       @Autowired
+       TokenStore tokenStore;
+   
+       @Override
+       public void configure(ResourceServerSecurityConfigurer resources) {
+           resources.resourceId(RESOURCE_ID)//资源 id
+                   .tokenStore(tokenStore)
+                   .stateless(true);
+       }
+   
+       @Override
+       public void configure(HttpSecurity http) throws Exception {
+           http.csrf().disable()
+                   .authorizeRequests()
+                   .antMatchers("/r/**", "/course/**").authenticated()//所有/r/**以及course/**的请求必须认证通过
+                   .anyRequest().permitAll() //其他的可以直接访问
+           ;
+       }
+   
+   }
+   ```
+
+   **`TokenConfig`类：**
+
+   ```java
+   @Configuration
+   public class TokenConfig {
+   
+       String SIGNING_KEY = "mq123";//签名密钥
+   
+   
+       /**
+        * TokenStore 是 OAuth2 框架用来存储和读取访问令牌的组件。
+        * 这里你使用的是 JwtTokenStore，它意味着使用 JWT 格式的令牌，而不是普通的令牌存储（如数据库或内存）。
+        */
+       @Bean
+       public TokenStore tokenStore() {
+           return new JwtTokenStore(accessTokenConverter());
+       }
+   
+       /**
+        * 这个方法返回一个 JwtAccessTokenConverter 实例，用于在 JWT 和 OAuth2 访问令牌之间进行转换。
+        * JwtAccessTokenConverter 是一个帮助类，它将 JWT 作为 OAuth2 令牌的一部分。它的主要职责是帮助对 JWT 进行编码和解码操作。
+        * 在这里，它通过 setSigningKey(SIGNING_KEY) 设置了签名密钥，这样 JWT 令牌会使用这个密钥进行签名。只有知道这个密钥的服务器才能对其进行验证。
+        */
+       @Bean
+       public JwtAccessTokenConverter accessTokenConverter() {
+           JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+           converter.setSigningKey(SIGNING_KEY);
+           return converter;
+       }
+   
+   }
+   ```
+
+3. **测试：**
+
+   ```
+   ### 查询课程信息
+   GET {{content_host}}/content/course/120
+   Authorization: Bearer eyJhbGciOiJIUzI1NiI....
+   ```
+
+   结果：
+
+   成功查询
+
+### 5.2 获取jwt令牌中的数据
+
+在《4. 实现用户认证》中，我们通过`userDetail`向jwt令牌中封装了更多的数据：
+
+```java
+@Service
+public class UserServiceImpl implements UserDetailsService {
+
+    @Autowired
+    XcUserMapper xcUserMapper;
+
+    @Override
+    public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+
+        XcUser user = xcUserMapper.selectOne(new LambdaQueryWrapper<XcUser>()
+                                             .eq(XcUser::getUsername, s));
+        if(user==null){
+            //返回空表示用户不存在
+            return null;
+        }
+
+        //取出数据库存储的正确密码
+        String password  =user.getPassword();
+        //用户权限,如果不加报Cannot pass a null GrantedAuthority collection
+        String[] authorities = {"p1"};
+       //为了安全在令牌中不放密码
+        user.setPassword(null);
+        
+        //将user对象转json
+        String userString = JSON.toJSONString(user);
+        //创建UserDetails对象
+        UserDetails userDetails = User
+            .withUsername(userString)
+            .password(password)
+            .authorities(authorities)
+            .build();
+
+        return userDetails;
+    }
+}
+```
+
+我们可以在资源微服务中，把这些数据取出来：
+
+```java
+@Slf4j
+public class SecurityUtil {
+
+    public static XcUser getUser() {
+        try {
+            Object principalObj = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principalObj instanceof String) {
+                //取出用户身份信息
+                String principal = principalObj.toString();
+                //将json转成对象
+                XcUser user = JSON.parseObject(principal, XcUser.class);
+                return user;
+            }
+        } catch (Exception e) {
+            log.error("获取当前登录用户身份出错:{}", e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Data
+    public static class XcUser implements Serializable {
+
+        private static final long serialVersionUID = 1L;
+
+        private String id;
+
+        private String username;
+
+        private String password;
+
+        private String salt;
+
+        private String name;
+        
+        private String nickname;
+        
+        private String wxUnionid;
+        
+        private String companyId;
+        /**
+         * 头像
+         */
+        private String userpic;
+
+        private String utype;
+
+        private LocalDateTime birthday;
+
+        private String sex;
+
+        private String email;
+
+        private String cellphone;
+
+        private String qq;
+
+        /**
+         * 用户状态
+         */
+        private String status;
+
+        private LocalDateTime createTime;
+
+        private LocalDateTime updateTime;
+
+    }
+}
+```
+
+<img src="/assets/SpringSecurity实现登录认证与授权.assets/image-20240926143546714.png" alt="image-20240926143546714" style="zoom: 80%;" />
+
+需要的时候调用`SecurityUtil`的`getUser`方法即可
+
+## 6. 网关认证
+
+所有访问微服务的请求都要经过网关，在网关进行用户身份的认证可以将很多非法的请求拦截到微服务以外，这叫做网关认证。
+
+<img src="/assets/SpringSecurity实现登录认证与授权.assets/image-20240926145227324.png" alt="image-20240926145227324" style="zoom:67%;" />
+
+网关的职责：
+
+1. 网站白名单维护
+
+   > 针对不用认证的URL全部放行。
+
+2. 校验jwt的合法性
+
+   除了白名单剩下的就是需要认证的请求，网关需要验证jwt的合法性，jwt合法则说明用户身份合法，否则说明身份不合法则拒绝继续访问。
+
+**Attention：**网关校验后，jwt依然会被传递给微服务
+
+**具体步骤：**
+
+1. 引入依赖
+
+   ```xml
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-security</artifactId>
+   </dependency>
+   <dependency>
+       <groupId>org.springframework.cloud</groupId>
+       <artifactId>spring-cloud-starter-oauth2</artifactId>
+   </dependency>
+   <dependency>
+       <groupId>org.projectlombok</groupId>
+       <artifactId>lombok</artifactId>
+   </dependency>
+   <dependency>
+       <groupId>com.alibaba</groupId>
+       <artifactId>fastjson</artifactId>
+   </dependency>
+   ```
+
+2. 基础配置
+
+   **`GatewayAuthFilter`类：**
+
+   ```java
+   @Component
+   @Slf4j
+   public class GatewayAuthFilter implements GlobalFilter, Ordered {
+   
+       //白名单
+       private static List<String> whitelist = null;
+   
+       static {
+           //加载白名单
+           try (
+                   InputStream resourceAsStream = GatewayAuthFilter.class.getResourceAsStream("/security-whitelist.properties");
+           ) {
+               Properties properties = new Properties();
+               properties.load(resourceAsStream);
+               Set<String> strings = properties.stringPropertyNames();
+               whitelist = new ArrayList<>(strings);
+   
+           } catch (Exception e) {
+               log.error("加载/security-whitelist.properties出错:{}", e.getMessage());
+               e.printStackTrace();
+           }
+   
+   
+       }
+   
+       @Autowired
+       private TokenStore tokenStore;
+   
+   
+       @Override
+       public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+           String requestUrl = exchange.getRequest().getPath().value();
+           AntPathMatcher pathMatcher = new AntPathMatcher();
+           // 白名单放行
+           for (String url : whitelist) {
+               if (pathMatcher.match(url, requestUrl)) {
+                   return chain.filter(exchange);
+               }
+           }
+   
+           // 检查token是否存在
+           String token = getToken(exchange);
+           if (StringUtils.isBlank(token)) {
+               return buildReturnMono("没有认证", exchange);
+           }
+           // 判断是否是有效的token
+           OAuth2AccessToken oAuth2AccessToken;
+           try {
+               oAuth2AccessToken = tokenStore.readAccessToken(token);
+   
+               boolean expired = oAuth2AccessToken.isExpired();
+               if (expired) {
+                   return buildReturnMono("认证令牌已过期", exchange);
+               }
+               return chain.filter(exchange);
+           } catch (InvalidTokenException e) {
+               log.info("认证令牌无效: {}", token);
+               return buildReturnMono("认证令牌无效", exchange);
+           }
+   
+       }
+   
+       /**
+        * 获取token
+        */
+       private String getToken(ServerWebExchange exchange) {
+           String tokenStr = exchange.getRequest().getHeaders().getFirst("Authorization");
+           if (StringUtils.isBlank(tokenStr)) {
+               return null;
+           }
+           String token = tokenStr.split(" ")[1];
+           if (StringUtils.isBlank(token)) {
+               return null;
+           }
+           return token;
+       }
+   
+   
+       private Mono<Void> buildReturnMono(String error, ServerWebExchange exchange) {
+           ServerHttpResponse response = exchange.getResponse();
+           String jsonString = JSON.toJSONString(new RestErrorResponse(error));
+           byte[] bits = jsonString.getBytes(StandardCharsets.UTF_8);
+           DataBuffer buffer = response.bufferFactory().wrap(bits);
+           response.setStatusCode(HttpStatus.UNAUTHORIZED);
+           response.getHeaders().add("Content-Type", "application/json;charset=UTF-8");
+           return response.writeWith(Mono.just(buffer));
+       }
+   
+   
+       @Override
+       public int getOrder() {
+           return 0;
+       }
+   }
+   ```
+
+   **`SecurityConfig`类：**
+
+   ```java
+   @EnableWebFluxSecurity
+   @Configuration
+   public class SecurityConfig {
+   
+       //安全拦截配置
+       @Bean
+       public SecurityWebFilterChain webFluxSecurityFilterChain(ServerHttpSecurity http) {
+   
+           return http.authorizeExchange()
+                   .pathMatchers("/**").permitAll()
+                   .anyExchange().authenticated()
+                   .and().csrf().disable().build();
+       }
+       
+   }
+   ```
+
+   **`TokenConfig`类：**
+
+   ```java
+   @Configuration
+   public class TokenConfig {
+   
+       String SIGNING_KEY = "mq123"; //jwt密钥
+   
+   
+       @Bean
+       public TokenStore tokenStore() {
+           return new JwtTokenStore(accessTokenConverter());
+       }
+   
+       @Bean
+       public JwtAccessTokenConverter accessTokenConverter() {
+           JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+           converter.setSigningKey(SIGNING_KEY);
+           return converter;
+       }
+   
+   
+   }
+   ```
+
+   **`RestErrorResponse`类：**
+
+   ```java
+   public class RestErrorResponse implements Serializable {
+   
+       private String errMessage;
+   
+       public RestErrorResponse(String errMessage) {
+           this.errMessage = errMessage;
+       }
+   
+       public String getErrMessage() {
+           return errMessage;
+       }
+   
+       public void setErrMessage(String errMessage) {
+           this.errMessage = errMessage;
+       }
+   }
+   ```
+
+   
 
 ## 7. 统一认证
 
+### 7.1 准备
+
+通过`oauth/token?client_id=#{}&client_secret=#{}&grant_type=password&username=#{}&password=#{}`进行密码模式认证时，如果username只传递数据库里面的username，那这个接口只能进行`用户名+密码`的校验模式，但是，如果向这个属性传递一个类（以json的形式），例如`AuthParamsDto`，这个类封装许多认证方法，那么这个接口就可以实现多种认证方法。
+
+**具体步骤：**
+
+1. 创建一个DTO类表示认证的参数：
+
+   ```java
+   @Data
+   public class AuthParamsDto {
+   
+       private String username; //用户名
+       private String password; //域  用于扩展
+       private String cellphone;//手机号
+       private String checkcode;//验证码
+       private String checkcodekey;//验证码key
+       private String authType; // 认证的类型   password:用户名密码模式类型    sms:短信模式类型
+       private Map<String, Object> payload = new HashMap<>();//附加数据，作为扩展，不同认证类型可拥有不同的附加数据。如认证类型为短信时包含smsKey : sms:3d21042d054548b08477142bbca95cfa; 所有情况下都包含clientId
+   
+   }
+   ```
+
+2. 修改`loadUserByUsername()`方法
+
+   ```java
+   @Slf4j
+   @Service
+   public class UserServiceImpl implements UserDetailsService {
+   
+       @Autowired
+       XcUserMapper xcUserMapper;
+   
+       @Override
+       public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+   
+           AuthParamsDto authParamsDto = null;
+           try {
+               //将认证参数转为AuthParamsDto类型
+               authParamsDto = JSON.parseObject(s, AuthParamsDto.class);
+           } catch (Exception e) {
+               log.info("认证请求不符合项目要求:{}",s);
+               throw new RuntimeException("认证请求数据格式不对");
+           }
+           //账号
+           String username = authParamsDto.getUsername();
+           XcUser user = xcUserMapper
+          				 .selectOne(new LambdaQueryWrapper<XcUser>()
+          				 .eq(XcUser::getUsername, username));
+           if(user==null){
+               //返回空表示用户不存在
+               return null;
+           }
+           //取出数据库存储的正确密码
+           String password  =user.getPassword();
+           //用户权限,如果不加报Cannot pass a null GrantedAuthority collection
+           String[] authorities = {"p1"};
+           //将user对象转json
+           String userString = JSON.toJSONString(user);
+           //创建UserDetails对象
+           UserDetails userDetails = User
+               .withUsername(userString)
+               .password(password)
+               .authorities(authorities)
+               .build();
+   
+           return userDetails;
+       }
+   }
+   ```
+
+   > 修改后请求如下
+   >
+   > ```
+   > ################扩展认证请求参数后######################
+   > ###密码模式
+   > POST {{auth_host}}/auth/oauth/token?client_id=XcWebApp&client_secret=XcWebApp&grant_type=password&username={"username":"stu1","authType":"password","password":"111111"}
+   > ```
+
+3. 如图所示。
+
+   ![image-20240926151127985](/assets/SpringSecurity实现登录认证与授权.assets/image-20240926151127985.png)
+
+   `UserDetailsService`会把`UserDetail`传递给`DaoAuthenticationProvider`，由`DaoAuthenticationProvider`，但是，我们现在已经通过修改传入`UserDetailsService`的`loadUserByUsername`方法实现了多种认证方式，这些认证方式不是都需要密码的，所以这里也要修改。
+
+   现在重新定义`DaoAuthenticationProviderCustom`类，重写类的`additionalAuthenticationChecks`方法。
+
+   ```java
+   @Component
+   public class DaoAuthenticationProviderCustom extends DaoAuthenticationProvider {
+       @Autowired
+       public void setUserDetailsService(UserDetailsService userDetailsService) {
+           super.setUserDetailsService(userDetailsService);    // 注入了实现UserService接口的UserServiceImpl
+       }
+   
+       /**
+        * 重写密码对比方法
+        *
+        * @param userDetails
+        * @param authentication
+        * @throws AuthenticationException
+        */
+       @Override
+       protected void additionalAuthenticationChecks(UserDetails userDetails, UsernamePasswordAuthenticationToken authentication) throws AuthenticationException {
+   
+       }
+   }
+   ```
+
+   修改`WebSecurityConfig`类指定`daoAuthenticationProviderCustom`
+
+   ```java
+   @EnableWebSecurity
+   @EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
+   public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+       @Autowired
+       DaoAuthenticationProviderCustom daoAuthenticationProviderCustom;
+   
+       //...
+       
+       @Override
+       protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+           auth.authenticationProvider(daoAuthenticationProviderCustom);
+       }
+   
+   }
+   ```
+
+   测试：
+
+   ```
+   ################扩展认证请求参数后######################
+   ###密码模式
+   POST {{auth_host}}/auth/oauth/token?client_id=XcWebApp&client_secret=XcWebApp&grant_type=password&username={"username":"stu1","authType":"password","password":"111111"}
+   ```
+
+   <img src="/assets/SpringSecurity实现登录认证与授权.assets/image-20240926152238872.png" alt="image-20240926152238872" style="zoom:80%;" />
+
+   `UserServiceImpl`可以顺利解析user。
+
+   ![image-20240926152422772](/assets/SpringSecurity实现登录认证与授权.assets/image-20240926152422772.png)
+
+   `loadUserByUsername`方法结束后，返回值交给自定义`DaoAuthenticationProvider`
 
 
 
+### 7.2 账户密码认证
+
+我们定义一个认证Service接口以进行各种类型的认证
+
+```java
+public interface AuthService {
+
+    /**
+     * @description 认证方法
+     * @param authParamsDto 认证参数
+     * @return com.xuecheng.ucenter.model.po.XcUser 用户信息
+     * @author Mr.M
+     * @date 2022/9/29 12:11
+     */
+    XcUserExt execute(AuthParamsDto authParamsDto);
+
+}
+```
+
+然后，在`loadUserByUsername`方法中加入这个接口的execute方法，用这个方法自己实现密码的校验（前面屏蔽了框架原来的密码校验）
+
+下面，实现这个接口，并把这个接口的实现放入`loadUserByUsername`方法
+
+```java
+@Service("password_authservice")
+public class PasswordAuthServiceImpl implements AuthService {
+
+    @Autowired
+    XcUserMapper xcUserMapper;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    @Override
+    public XcUserExt execute(AuthParamsDto authParamsDto) {
+
+        //账号
+        String username = authParamsDto.getUsername();
+        XcUser user = xcUserMapper.selectOne(new LambdaQueryWrapper<XcUser>()
+                                             .eq(XcUser::getUsername, username));
+        if (user == null) {
+            //返回空表示用户不存在
+            throw new RuntimeException("账号不存在");
+        }
+        XcUserExt xcUserExt = new XcUserExt();
+        BeanUtils.copyProperties(user, xcUserExt);
+        //校验密码
+        //取出数据库存储的正确密码
+        String passwordDb = user.getPassword();
+        String passwordForm = authParamsDto.getPassword();
+        boolean matches = passwordEncoder.matches(passwordForm, passwordDb);
+        if (!matches) {
+            throw new RuntimeException("账号或密码错误");
+        }
+        return xcUserExt;
+    }
+}
+```
+
+> ```java
+> @Data
+> public class XcUserExt extends XcUser {
+>  //用户权限
+>  List<String> permissions = new ArrayList<>();
+> }
+> ```
+>
+> 这个类是为了扩展性
+
+```java
+@Slf4j
+@Service
+public class UserServiceImpl implements UserDetailsService {
+
+    @Autowired
+    XcUserMapper xcUserMapper;
+
+    @Autowired
+    ApplicationContext applicationContext;
+    
+
+    /**
+     * @param s AuthParamsDto类型的json数据
+     * @return org.springframework.security.core.userdetails.UserDetails
+     * @description 查询用户信息组成用户身份信息
+     * @author Mr.M
+     * @date 2022/9/28 18:30
+     */
+    @Override
+    public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+
+        AuthParamsDto authParamsDto = null;
+        try {
+            //将认证参数转为AuthParamsDto类型
+            authParamsDto = JSON.parseObject(s, AuthParamsDto.class);
+        } catch (Exception e) {
+            log.info("认证请求不符合项目要求:{}", s);
+            throw new RuntimeException("认证请求数据格式不对");
+        }
+
+        //认证方法
+        String authType = authParamsDto.getAuthType();
+        AuthService authService = applicationContext.getBean(authType + "_authservice", AuthService.class);
+        XcUserExt user = authService.execute(authParamsDto);
+
+        return getUserPrincipal(user);
+    }
 
 
+    /**
+     * @param user 用户id，主键
+     * @return com.xuecheng.ucenter.model.po.XcUser 用户信息
+     * @description 查询用户信息
+     * @author Mr.M
+     * @date 2022/9/29 12:19
+     */
+    public UserDetails getUserPrincipal(XcUserExt user) {
+        //用户权限,如果不加报Cannot pass a null GrantedAuthority collection
+        String[] authorities = {"p1"};
+        String password = user.getPassword();
+        //为了安全在令牌中不放密码
+        user.setPassword(null);
+        //将user对象转json
+        String userString = JSON.toJSONString(user);
+        //创建UserDetails对象
+        UserDetails userDetails = User
+            .withUsername(userString)
+            .password(password)
+            .authorities(authorities)
+            .build();
+        return userDetails;
+    }
 
+}
+```
+
+**Attention：**认证Service接口的实现类`PasswordAuthServiceImpl`并不是用`@Autowired`或类似的方式进行注入，原因是：在项目完善后，显然不会只有一种认证方法，即认证Service接口的实现类不会只有一种，所以`@Autowird`这种按类型注入的方式不合适。这里是按名注入。
+
+以上是全部。
