@@ -602,7 +602,7 @@ public class RedisConfig {
 
 尽管JSON的序列化方式可以满足我们的需求，但依然存在一些问题，如图：
 
-<img src="/assets/docker部署xxl-job-admin.assets/Redis简介.assets/image-20241002220132638.png" alt="image-20241002220132638" style="zoom: 80%;" />
+<img src="/assets/Redis简介.assets/image-20241002220132638.png" alt="image-20241002220132638" style="zoom: 80%;" />
 
 为了在反序列化时知道对象的类型，JSON序列化器会将类的class类型写入json结果中，存入Redis，会带来额外的内存开销。
 
