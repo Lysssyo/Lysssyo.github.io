@@ -365,6 +365,7 @@ GET http://localhost:8081/shop/1
 
     private boolean tryLock(String key) {
         Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(key, "1", 10, TimeUnit.SECONDS);
+        // 注意，这里为key设置过期时间是为了避免线程获取锁之后还没释放锁的时候宕机了，导致业务不可用
         return BooleanUtil.isTrue(flag); //函数的返回值为boolean类，如果直接返回Boolean会自动拆箱，可能出现空指针异常
     }
 
