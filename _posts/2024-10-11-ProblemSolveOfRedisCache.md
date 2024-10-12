@@ -311,6 +311,8 @@ GET http://localhost:8081/shop/1
 
 <img src="/assets/Redis缓存相关问题.assets/image-20241010092426024.png" alt="image-20241010092426024" style="zoom: 60%;" />
 
+> 互斥锁是一种悲观锁，认为线程安全问题一定会发生。
+
 ```java
     private Result queryByIdWithMutex(Long id) {
         // 从Redis中查询
