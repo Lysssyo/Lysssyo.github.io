@@ -23,3 +23,7 @@ package-lock.json
 # Misc
 _sass/dist
 assets/js/dist
+
+
+# 这个文件夹是为了在本地浏览md，故不上传仓库
+_posts/assets
