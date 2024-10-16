@@ -251,3 +251,9 @@ STREAM类型消息队列的`XREADGROUP`命令特点：
 * 有消息确认机制，保证消息至少被消费一次
 
 ![image-20241015192424863](assets/2024-10-15-RedisMessageQueue.assets/image-20241015192424863.png)
+
+
+
+## 3. 基于Stream消息队列实现异步秒杀
+
+详见《秒杀业务》
