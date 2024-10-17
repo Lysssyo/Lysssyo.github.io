@@ -11,7 +11,7 @@ tags: [Redis,Redission]
 
 1. 引入依赖
 
-   ```pom
+   ```
    <dependency>
    	<groupId>org.redisson</groupId>
    	<artifactId>redisson</artifactId>
