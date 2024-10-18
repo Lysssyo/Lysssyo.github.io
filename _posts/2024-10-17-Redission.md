@@ -5,8 +5,6 @@ categories: [中间件, Redis]
 tags: [Redis,Redission]
 ---
 
-
-
 ## 1. 简单Demo
 
 1. 引入依赖
