@@ -99,7 +99,7 @@ GET http://localhost:8081/shop/1
 
 主动更新有如下几种方案：
 
-- Cache Aside Pattern 人工编码方式：缓存调用者在更新完数据库后再去更新缓存，也称之为**双写方案**
+- Cache Aside Pattern 旁路缓存策略：缓存调用者在更新完数据库后再去更新缓存，也称之为**双写方案**
 
 
 - Read/Write Through Pattern : 由系统本身完成，数据库与缓存的问题交由系统本身去处理
@@ -123,34 +123,17 @@ GET http://localhost:8081/shop/1
 
   如果在操作数据库之前，缓存失效（例如超时剔除），此时如果线程A查询缓存，就会未命中，然后读数据库，在线程A写缓存之前，线程B才开始操作数据库，删除缓存，然后线程A又才写缓存，就会出现缓存与数据库不一致且缓存的数据为旧数据。但是，显然这种情况比上一种发生的概率小，因为缓存的速度较快，操作缓存的线程A比操作数据库的线程B还慢的概率不大。
 
+> 无论先删缓存还是先更新数据库，都会有并发问题，缓存都有可能为旧数据。
+>
 > 注意：读写缓存的速度远比更新数据库快。
 
 **综上，先操作数据库，再删除缓存**
 
 **此外，如何保证缓存与数据库的操作的同时成功或失败？**
 
-对于单体系统，将缓存与数据库操作放在一个事务，对于分布式系统，利用TCC等分布式事务方案
+[数据库和缓存如何保证一致性？ | 小林coding](https://xiaolincoding.com/redis/architecture/mysql_redis_consistency.html#如何保证两个操作都能执行成功)
 
-**Demo**
-
-```java
-    @Transactional
-    public Result update(Shop shop) {
-        Long id = shop.getId();
-        if (id == null) { //以防空指针异常
-            throw new HeimaDpException("id不能为空");
-        }
-        // 更新数据库
-        updateById(shop); //MyBatis-Plus实现
-
-        //删除缓存
-        stringRedisTemplate.delete(RedisConstant.CACHE_SHOP_KEY + id);
-
-        return Result.ok();
-    }
-```
-
-
+> 见《七、缓存篇：数据库和缓存如何保证一致性》 之 《 如何保证两个操作都能执行成功？》
 
 ## 3. 缓存穿透
 
