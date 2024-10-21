@@ -131,7 +131,7 @@ GET http://localhost:8081/shop/1
 
 **此外，如何保证缓存与数据库的操作的同时成功或失败？**
 
-[数据库和缓存如何保证一致性？ | 小林coding](https://xiaolincoding.com/redis/architecture/mysql_redis_consistency.html#如何保证两个操作都能执行成功)
+[数据库和缓存如何保证一致性](https://xiaolincoding.com/redis/architecture/mysql_redis_consistency.html#如何保证两个操作都能执行成功)
 
 > 见《七、缓存篇：数据库和缓存如何保证一致性》 之 《 如何保证两个操作都能执行成功？》
 
