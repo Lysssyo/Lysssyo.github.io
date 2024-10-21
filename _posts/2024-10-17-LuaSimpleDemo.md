@@ -148,7 +148,7 @@ return 0
 
 `redis.call()`方法的返回值与执行的命令有关。
 
-```lua
+```
 -- 集合中有 1010 这个元素，返回值是number类型
 > eval "return type(redis.call(\"sismember\", KEYS[1], ARGV[1]))" 1 seckill:order:10 1010
 number
