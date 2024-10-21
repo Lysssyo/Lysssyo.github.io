@@ -1,7 +1,7 @@
 ---
 title: Lua简单Demo
 date: 2024-10-17 08:43:00 +0800
-categories: [中间价, Redis]
+categories: [中间件, Redis]
 tags: [Redia,Lua]
 ---
 
@@ -140,5 +140,53 @@ return 0
         }
         return Result.ok();
     }
+```
+
+
+
+## 3. redis.call()
+
+`redis.call()`方法的返回值与执行的命令有关。
+
+```lua
+-- 集合中有 1010 这个元素，返回值是number类型
+> eval "return type(redis.call(\"sismember\", KEYS[1], ARGV[1]))" 1 seckill:order:10 1010
+number
+
+-- 集合中有 1010 这个元素，返回值为1
+> eval "return (redis.call(\"sismember\", KEYS[1], ARGV[1]))" 1 seckill:order:10 1010
+1
+
+-- 集合中没有rose这个元素，返回值依然是number类型
+> eval "return type(redis.call(\"sismember\", KEYS[1], ARGV[1]))" 1 seckill:order:10 rose
+number
+
+-- 集合中没有rose这个元素，返回值为0
+> eval "return (redis.call(\"sismember\", KEYS[1], ARGV[1]))" 1 seckill:order:10 rose
+0
+
+-- 有seckill:stock:10（String类型） 这个元素
+> eval "return redis.call(\"get\", KEYS[1])" 1 seckill:stock:10
+80
+> eval "return type(redis.call(\"get\", KEYS[1]))" 1 seckill:stock:10
+string
+
+-- 没有seckill:stock:90（String类型） 这个元素
+> eval "return redis.call(\"get\", KEYS[1])" 1 seckill:stock:90
+null
+> eval "return type(redis.call(\"get\", KEYS[1]))" 1 seckill:stock:90
+boolean
+
+-- Zset（like:blog:4）有1010这个数据
+> eval "return (redis.call(\"zscore\", KEYS[1], ARGV[1]))" 1 like:blog:4 1010
+1729474566892
+> eval "return type(redis.call(\"zscore\", KEYS[1], ARGV[1]))" 1 like:blog:4 1010
+string
+
+-- Zset（like:blog:4） 没有1111这个数据
+> eval "return (redis.call(\"zscore\", KEYS[1], ARGV[1]))" 1 like:blog:4 1111
+null
+> eval "return type(redis.call(\"zscore\", KEYS[1], ARGV[1]))" 1 like:blog:4 1111
+boolean
 ```
 
