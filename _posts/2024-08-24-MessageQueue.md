@@ -121,16 +121,16 @@ tags: [Java, MessageQueue,RabbitMQ,SpringAMOP]
 
 2. 创建并运行容器
 
-```shell
-docker run \
---name mq \
- -e RABBITMQ_DEFAULT_USER=itheima \
- -e RABBITMQ_DEFAULT_PASS=123321 \
- -p 15672:15672 \
- -p 5672:5672 \
- -d \
- -d rabbitmq:3.12-management
-```
+   ```shell
+   docker run \
+   --name mq \
+    -e RABBITMQ_DEFAULT_USER=itheima \
+    -e RABBITMQ_DEFAULT_PASS=123321 \
+    -p 15672:15672 \
+    -p 5672:5672 \
+    -d \
+    -d rabbitmq:3.12-management
+   ```
 
 ### 2.2 收发信息
 
@@ -535,8 +535,6 @@ public void listenDirectQueue2(String msg){
 
 #### 3.3.4 声明队列和Topic交换机
 
-示例：
-
 ```java
 @RabbitListener(bindings = @QueueBinding(
     value = @Queue(name = "topic.queue1"),
@@ -556,8 +554,6 @@ public void listenTopicQueue2(String msg){
     System.out.println("消费者2接收到topic.queue2的消息：【" + msg + "】");
 }
 ```
-
-
 
 ### 3.4 消息转换器
 
@@ -678,22 +674,25 @@ spring:
 >
 > `Publisher Return` 用于处理不可路由的消息
 
-<img src="/assets/MessageQueue.assets/image-20240821150446184.png" alt="image-20240821150446184" style="zoom: 40%;">
+<img src="assets/MessageQueue.assets/image-20240821150446184.png" alt="image-20240821150446184" style="zoom: 40%;">
 
 
 
 总结如下：
 
+![image-20241024164554726](assets/2024-08-24-MessageQueue.assets/image-20241024164554726.png)
+
+> **当RabbitMQ成功接收到生产者发送的消息时，它会向生产者发送一个`Basic.Ack`命令**，表示消息已经被成功接收并准备进行后续的路由操作
+>
+> `ack`和`nack`属于**Publisher Confirm**机制，`ack`是投递成功；`nack`是投递失败。而`return`则属于**Publisher Return**机制。
+
 - 当消息投递到MQ，但是路由失败时，通过**Publisher Return返回异常信息**，**同时返回ack的确认信息**，**代表投递成功**
 
-  > - 路由失败跟MQ没有关系，路由失败只有两种原因：routine key填的不对、要么就是这个交换机没有队列给它绑定。MQ自己的内部机制是不可能失败的，一般在业务开发当中几乎不太可能会出现这种情况，因为一旦出现这种情况只能说明两件事，要么是代码写的有问题，要么是交换机的配置有问题，这都是开发人员导致的，完全可以在开发层面避免它。
-  > - 消息一旦到达交换机就代表消息投递成功了，消息投递成功返回 ACK
+  > 路由失败跟MQ没有关系，路由失败只有两种原因：routine key填的不对、要么就是这个交换机没有队列给它绑定。MQ自己的内部机制是不可能失败的，一般在业务开发当中几乎不太可能会出现这种情况，因为一旦出现这种情况只能说明两件事，要么是代码写的有问题，要么是交换机的配置有问题，这都是开发人员导致的，完全可以在开发层面避免它。
 
 - 临时消息投递到了MQ，并且入队成功，返回ACK，告知投递成功
 
 - 持久消息投递到了MQ，并且入队完成持久化，返回ACK ，告知投递成功
-
-  > 没有持久化到磁盘中的消息，保存在内存中
 
 - 其它情况都会返回NACK，告知投递失败
 
@@ -701,9 +700,7 @@ spring:
   >
   > 例如持久化消息入队但是未持久化
 
-> 当RabbitMQ成功接收到生产者发送的消息时，它会向生产者发送一个`Basic.Ack`命令，表示消息已经被成功接收并准备进行后续的路由操作
 
-其中`ack`和`nack`属于**Publisher Confirm**机制，`ack`是投递成功；`nack`是投递失败。而`return`则属于**Publisher Return**机制。
 
 **实现生产者确认机制：**
 
@@ -756,13 +753,13 @@ spring:
 
    也可以这样写：
 
-   <img src="/assets/MessageQueue.assets/image-20240821152705752.png" alt="image-20240821152705752" style="zoom:80%;">
+   <img src="assets/MessageQueue.assets/image-20240821152705752.png" alt="image-20240821152705752" style="zoom:80%;">
 
 3. **定义ConfirmCallback**
 
    由于每个消息发送时的处理逻辑不一定相同，因此ConfirmCallback需要在每次发消息时定义。具体来说，是在调用RabbitTemplate中的convertAndSend方法时，多传递一个参数：
 
-   <img src="/assets/MessageQueue.assets/image-20240821160558081.png" alt="image-20240821160558081" style="zoom:80%;">
+   <img src="assets/MessageQueue.assets/image-20240821160558081.png" alt="image-20240821160558081" style="zoom:80%;">
 
    这里的`CorrelationData`中包含两个核心的东西：
 
@@ -771,7 +768,7 @@ spring:
 
    将来MQ的回执就会通过这个`Future`来返回，我们可以提前给`CorrelationData`中的`Future`添加回调函数来处理消息回执：
 
-   <img src="/assets/MessageQueue.assets/image-20240821160838366.png" alt="image-20240821160838366" style="zoom:80%;">
+   <img src="assets/MessageQueue.assets/image-20240821160838366.png" alt="image-20240821160838366" style="zoom:80%;">
 
    测试：
 
