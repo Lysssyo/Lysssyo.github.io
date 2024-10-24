@@ -391,7 +391,7 @@ public class FanoutConfig {
     @Bean
     public FanoutExchange fanoutExchange(){
         return new FanoutExchange("hmall.fanout");
-        // 或者 return ExchangeBuilder.fanoutExchange("hmall.direct").build();
+        // 或者 return ExchangeBuilder.fanoutExchange("hmall.fanout").build();
     }
 
     /**
@@ -437,13 +437,12 @@ public class FanoutConfig {
 >
 >    > Bean的名称：默认情况下，Spring会使用方法名作为bean的名称（当然，你也可以通过@Bean注解的name属性指定一个不同的名称）。因此，fanoutExchange1方法创建的bean的名称是fanoutExchange1
 >
-> 2. 自动装配：（bean有创建扫描顺序）在`bindingQueue1`方法中，你声明了两个参数`Queue fanoutQueue1`和`FanoutExchange fanoutExchange`。由于这些参数的类型与前面定义的bean的类型相匹配，并且你没有使用@Qualifier或其他方式来指定特定的bean，Spring会尝试通过类型匹配来自动装配这些参数。在这种情况下，因为**容器中只有一个**FanoutExchange类型的bean和一个Queue类型的bean，所以这些参数会**自动引用**到这些bean。
+> 2. 自动装配：例如，`bindingQueue1(Queue fanoutQueue1, FanoutExchange fanoutExchange)`方法中，Spring会自动查找类型为`Queue`的Bean `fanoutQueue1`和类型为`FanoutExchange`的Bean `fanoutExchange`，并将它们注入到方法参数中。
 >
-> 3. 由于bindingQueue1方法是在fanoutQueue1方法之后定义的（在Spring的bean定义扫描顺序中），当bindingQueue1方法被调用以创建Binding类型的bean时，fanoutQueue1方法创建的Queue类型的bean已经存在于容器中，因此它会被**自动装配**到bindingQueue1方法的fanoutQueue1参数中。
+>    > 因为类型为`Queue`的Bean有多个，所以如果`bindingQueue1`的`Queue`类型的参数名不是已经存在的Bean的名称，那么就无法正确注入：
+>    >
+>    > ![image-20241024152513638](assets/2024-08-24-MessageQueue.assets/image-20241024152513638.png)
 >
-> 4. 同理，bindingQueue2方法会引用由fanoutQueue2方法创建的Queue类型的bean，因为当bindingQueue2方法被调用时，fanoutQueue2方法创建的Queue类型的bean是容器中唯一尚未被bindingQueue1使用的Queue类型的bean。
->
-> 因此，即使你有多个相同类型的bean，Spring也能通过方法的签名和bean的创建顺序来正确地区分它们，并实现自动装配。
 
 程序运行后，会自动创建队列和Fanout交换机
 
@@ -535,6 +534,8 @@ public void listenDirectQueue2(String msg){
 > 在 `@Queue` 注解中，`durable` 属性用于指定队列是否为持久队列（Durable Queue）。持久队列在消息代理（例如 RabbitMQ）重启后仍然存在，不会被删除。
 
 #### 3.3.4 声明队列和Topic交换机
+
+示例：
 
 ```Java
 @RabbitListener(bindings = @QueueBinding(
