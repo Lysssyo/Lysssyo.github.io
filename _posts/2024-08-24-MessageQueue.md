@@ -537,7 +537,7 @@ public void listenDirectQueue2(String msg){
 
 示例：
 
-```Java
+```java
 @RabbitListener(bindings = @QueueBinding(
     value = @Queue(name = "topic.queue1"),
     exchange = @Exchange(name = "hmall.topic", type = ExchangeTypes.TOPIC),
