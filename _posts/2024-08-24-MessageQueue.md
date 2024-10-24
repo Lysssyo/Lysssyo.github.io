@@ -12,7 +12,7 @@ tags: [Java, MessageQueue,RabbitMQ,SpringAMOP]
 
 以黑马商城的支付功能为例
 
-<img src="/assets/MessageQueue.assets/image-20240819153446941.png" alt="image-20240819153446941" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240819153446941.png" alt="image-20240819153446941" style="zoom:50%;">
 
 目前我们采用的是基于OpenFeign的同步调用，也就是说业务执行流程是这样的：
 
@@ -46,7 +46,7 @@ tags: [Java, MessageQueue,RabbitMQ,SpringAMOP]
 - 消息Broker：管理、暂存、转发消息，你可以把它理解成微信服务器
 - 消息接收者：接收和处理消息的人，就是原来的服务提供方
 
-<img src="/assets/MessageQueue.assets/image-20240819153946435.png" alt="image-20240819153946435" style="zoom:80%;">
+<img src="assets/MessageQueue.assets/image-20240819153946435.png" alt="image-20240819153946435" style="zoom:80%;">
 
 在异步调用中，发送者不再直接同步调用接收者的业务接口，而是发送一条消息投递给消息Broker。然后接收者根据自己的需求从消息Broker那里订阅消息。每当发送方发送消息后，接受者都能获取消息并处理。
 
@@ -54,7 +54,7 @@ tags: [Java, MessageQueue,RabbitMQ,SpringAMOP]
 
 对于上面支付服务的例子，这样修改：
 
-<img src="/assets/MessageQueue.assets/image-20240819154243114.png" alt="image-20240819154243114" style="zoom:67%;">
+<img src="assets/MessageQueue.assets/image-20240819154243114.png" alt="image-20240819154243114" style="zoom:67%;">
 
 假如产品经理提出了新的需求，比如要在支付成功后更新用户积分。支付代码完全不用变更，而仅仅是让积分服务也订阅消息即可
 
@@ -109,72 +109,32 @@ tags: [Java, MessageQueue,RabbitMQ,SpringAMOP]
 
 ## 2. RabbitMQ
 
-[官网：RabbitMQ: One broker to queue them all | RabbitMQ](https://www.rabbitmq.com/)
+[RabbitMQ](https://www.rabbitmq.com/)
 
 ### 2.1 部署
 
-1. tar包拖入服务器
-2. 加载镜像
+1. 拉取镜像
 
-```shell
-docker load -i mq.tar
-```
+   ```shell
+   docker pull rabbitmq:3.12-management
+   ```
 
-3. 安装容器
+2. 创建并运行容器
 
 ```shell
 docker run \
+--name mq \
  -e RABBITMQ_DEFAULT_USER=itheima \
  -e RABBITMQ_DEFAULT_PASS=123321 \
- -v mq-plugins:/plugins \
- --name mq \
- --hostname mq \
  -p 15672:15672 \
  -p 5672:5672 \
- --network hmall \
  -d \
- rabbitmq:3.8-management
+ -d rabbitmq:3.12-management
 ```
-
-补充：安装插件
-
-1. 因为我们是基于Docker安装，所以需要先查看RabbitMQ的插件目录对应的数据卷。
-
-   ```
-   docker volume inspect mq-plugins
-   ```
-
-   结果如下：
-
-   ```json
-   [
-       {
-           "CreatedAt": "2024-06-19T09:22:59+08:00",
-           "Driver": "local",
-           "Labels": null,
-           "Mountpoint": "/var/lib/docker/volumes/mq-plugins/_data",
-           "Name": "mq-plugins",
-           "Options": null,
-           "Scope": "local"
-       }
-   ]
-   ```
-
-   插件目录被挂载到了`/var/lib/docker/volumes/mq-plugins/_data`这个目录，我们上传插件到该目录下。
-
-   > 插件放在`D:\AAA_SecondDesktop\A_Technology\Docker\images\RabbitMQ`
-
-2. 接下来执行命令，安装插件：
-
-   ```
-   docker exec -it mq rabbitmq-plugins enable rabbitmq_delayed_message_exchange
-   ```
-
-   <img src="/assets/MessageQueue.assets/image-20240824204815471.png" alt="image-20240824204815471" style="zoom:80%;">
 
 ### 2.2 收发信息
 
-<img src="/assets/MessageQueue.assets/image-20240819161439390.png" alt="image-20240819161439390" style="zoom:67%;">
+<img src="assets/MessageQueue.assets/image-20240819161439390.png" alt="image-20240819161439390" style="zoom:67%;">
 
 - **`publisher`**：生产者，也就是发送消息的一方
 - **`consumer`**：消费者，也就是消费消息的一方
@@ -218,7 +178,7 @@ spring:
   rabbitmq:
     host: 192.168.150.101 # 你的虚拟机IP
     port: 5672 # 端口
-    virtual-host: /hmall # 虚拟主机
+    virtual-host: /hmall # 虚拟主机，创建虚拟主机时前面记得加“/”
     username: hmall # 用户名
     password: 123 # 密码
 ```
@@ -227,7 +187,7 @@ spring:
 
 ### 3.1 WorkQueues模型
 
-<img src="/assets/MessageQueue.assets/image-20240820181034088.png" alt="image-20240820181034088" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240820181034088.png" alt="image-20240820181034088" style="zoom:50%;">
 
 ```yaml
 spring:
@@ -254,7 +214,7 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
 
 #### 3.2.1 Fanout
 
-<img src="/assets/MessageQueue.assets/image-20240820140847402.png" alt="image-20240820140847402" style="zoom: 50%;">
+<img src="assets/MessageQueue.assets/image-20240820140847402.png" alt="image-20240820140847402" style="zoom: 50%;">
 
 - 可以有多个队列
 - 每个队列都要绑定到Exchange（交换机）
@@ -266,11 +226,11 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
 
 1. 控制台中添加两个队列`fanout1.queue1`与`fanout.queue2`，然后再创建一个交换机：`hmall.fanout`，并且绑定两个队列到交换机
 
-<img src="/assets/MessageQueue.assets/image-20240820142405630.png" alt="image-20240820142405630" style="zoom:80%;">
+<img src="assets/MessageQueue.assets/image-20240820142405630.png" alt="image-20240820142405630" style="zoom:80%;">
 
 > 注意添加交换机时选择正确的Type
 >
-> <img src="/assets/MessageQueue.assets/image-20240820204819172.png" alt="image-20240820204819172" style="zoom:67%;">
+> <img src="assets/MessageQueue.assets/image-20240820204819172.png" alt="image-20240820204819172" style="zoom:67%;">
 
 2. 消息发送
 
@@ -285,12 +245,14 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
    }
    ```
 
-   ![image-20240820142524683](/assets/MessageQueue.assets/image-20240820142524683.png)
+   ![image-20240820142524683](assets/MessageQueue.assets/image-20240820142524683.png)
 
    在 `rabbitTemplate.convertAndSend(exchangeName, "", message);` 这一行代码中，第二个参数是路由键 (Routing Key)。对于 `FanoutExchange` 类型的交换机，这个路由键并不会被实际使用，因为 `FanoutExchange` 会将消息广播到所有绑定到该交换机的队列中，而不考虑路由键。
 
 3. 消息接收
 
+   方法的类上加`@Component`注解使其被Spring管理
+   
    ```java
    @RabbitListener(queues = "fanout.queue1")
    public void listenFanoutQueue1(String msg) {
@@ -302,8 +264,8 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
        System.out.println("消费者2接收到Fanout消息：【" + msg + "】");
    }
    ```
-
-   ![image-20240820142558922](/assets/MessageQueue.assets/image-20240820142558922.png)
+   
+   ![image-20240820142558922](assets/MessageQueue.assets/image-20240820142558922.png)
 
 
 
