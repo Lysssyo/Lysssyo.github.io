@@ -557,6 +557,8 @@ public void listenTopicQueue2(String msg){
 }
 ```
 
+
+
 ### 3.4 消息转换器
 
 Spring的消息发送代码接收的消息体是一个Object：
