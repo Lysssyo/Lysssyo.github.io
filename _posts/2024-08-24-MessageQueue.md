@@ -1025,7 +1025,7 @@ public void listenLazyQueue(String msg){
 
   - 如果是**消息处理或校验异常**，自动返回`reject`;
 
-    > <img src="/assets/MessageQueue.assets/image-20240821225616085.png" alt="image-20240821225616085" style="zoom:80%;">
+    > <img src="assets/MessageQueue.assets/image-20240821225616085.png" alt="image-20240821225616085" style="zoom:80%;">
 
 通过下面的配置可以修改SpringAMQP的ACK处理方式：
 
@@ -1064,7 +1064,7 @@ spring:
 
 3. 结果
 
-   ![image-20240821225035446](/assets/MessageQueue.assets/image-20240821225035446.png)
+   ![image-20240821225035446](assets/MessageQueue.assets/image-20240821225035446.png)
 
    信息会被直接删去
 
@@ -1072,14 +1072,14 @@ spring:
 
 1. 配置`acknowledge-mode`为`auto`
 
-2. 消费者在处理信息时出现`RuntimeException`
+2. 消费者在处理信息时出现`MessageConversionException`
 
    ```java
        @RabbitListener(queues = "hmall.queue1")
        public void listenDirectQueue1(String msg) {
            System.out.println("消费者1接收到direct.queue1的信息：【" + msg + "】");
            if (true) {
-               throw new RuntimeException("故意的");
+               throw new MessageConversionException("故意的");
            }
            log.info("消息处理完成");
        }
@@ -1087,23 +1087,23 @@ spring:
 
 3. 结果
 
-   ![image-20240821225035446](/assets/MessageQueue.assets/image-20240821225035446.png)自动返回`reject`，信息会被直接删去
+   ![image-20240821225035446](assets/MessageQueue.assets/image-20240821225035446.png)自动返回`reject`，信息会被直接删去
 
 **测试3：**
 
 1. 配置`acknowledge-mode`为`auto`
 
-2. 消费者在处理信息时出现`MessageConversionException`
+2. 消费者在处理信息时出现`RuntimeException`
 
 3. 结果
 
    遇到错误之前：
 
-   ![image-20240821224719153](/assets/MessageQueue.assets/image-20240821224719153.png)
+   ![image-20240821224719153](assets/MessageQueue.assets/image-20240821224719153.png)
 
    遇到错误后：
 
-   ![image-20240821224812484](/assets/MessageQueue.assets/image-20240821224812484.png)
+   ![image-20240821224812484](assets/MessageQueue.assets/image-20240821224812484.png)
 
    自动返回`nack`，RabbitMQ需要重新投递
 
@@ -1283,7 +1283,7 @@ spring:
 - 开启消费者确认机制为auto，由spring确认消息处理成功后返回ack，异常时返回nack
 - 或者开启消费者失败重试机制，并设置MessageRecoverer，多次重试失败后将消息投递到异常交换机，交由人工处理
 
-### 4.4 业务幂等处性
+### 4.4 业务幂等性处理
 
 何为幂等性？
 
