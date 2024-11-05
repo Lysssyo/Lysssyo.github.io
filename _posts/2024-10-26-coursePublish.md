@@ -1,7 +1,7 @@
 ---
-title: 实现课程发布中的分布式事务最终一致性控制
+title: IT在线教育平台
 date: 2024-10-26 14:45:00 +0800
-categories: [Java, JavaWeb]
+categories: [Java, 项目]
 tags: [Java,业务,简历项目]
 ---
 
