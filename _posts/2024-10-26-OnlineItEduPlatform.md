@@ -7,7 +7,13 @@ tags: [Java,业务,简历项目]
 
 
 
-## 1. 基本流程
+## 1. 业务
+
+### 1.3 课程发布功能中的分布式事务最终一致性控制
+
+#### 1.3.1 基本流程
+
+基于xxl-job，本地消息表以及乐观锁，完成课程发布功能中的分布式事务最终一致性控制
 
 <img src="assets/2024-10-26-coursePublish.assets/image-20241026145906546.png" alt="image-20241026145906546" style="zoom:80%;" />
 
@@ -19,7 +25,7 @@ tags: [Java,业务,简历项目]
 >
 > 定义消息表，可以统一处理
 
-## 2. 消息SDK
+#### 1.3.2 消息SDK
 
 ```java
 @Slf4j
@@ -287,7 +293,7 @@ public class MqMessageServiceImpl extends ServiceImpl<MqMessageMapper, MqMessage
 
 `MessageProcessAbstract`中的`MqMessageService`接口用于提供消息处理服务的方法，主要包括获取消息、添加消息、标记任务完成、完成任务阶段以及查询任务阶段的状态。它通过这些方法管理消息表中的任务并确保任务的执行状态同步，最终实现消息的状态更新与历史记录的归档。
 
-### 3. 异步消息处理
+#### 1.3.3 异步消息处理
 
 ```java
 @Component
@@ -392,7 +398,7 @@ public class CoursePublishTask extends MessageProcessAbstract {
 
 
 
-## 4. 技术选型相关问题
+#### 1.3.4 技术选型相关问题
 
 1. 为什么不用消息队列？
 
