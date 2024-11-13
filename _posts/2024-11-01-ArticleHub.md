@@ -667,6 +667,10 @@ public class AddArticleCategoryDTO {
 
 #### 1.6.1 展示每日必读
 
+展示每日必读这里还实现了按照点赞排行的功能。
+
+![image-20241113204242020](assets/2024-11-01-ArticleHub.assets/image-20241113204242020.png)
+
 ```java
 		// 根据key获取当天的每日必读（带上score）
 		String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy:MM:dd"));
@@ -674,7 +678,7 @@ public class AddArticleCategoryDTO {
 		Set<ZSetOperations.TypedTuple<String>> rankingSetWithScores = stringRedisTemplate.opsForZSet()
             .reverseRangeWithScores("ArticleHub:Ranking:" + date, 0, 9);
 
-		// 传递给前端
+		// 包装一下传递给前端
         List<DailyReadArticleDTO> dailyReadArticleDTOList = rankingSetWithScores.stream()
                 .map(new Function<ZSetOperations.TypedTuple<String>, DailyReadArticleDTO>() {
                     @Override
@@ -684,31 +688,112 @@ public class AddArticleCategoryDTO {
                         String value = stringTypedTuple.getValue();
                         dailyReadArticleDTO = JSONUtil.toBean(value, DailyReadArticleDTO.class);
                         dailyReadArticleDTO.setStars(score);
+                        dailyReadArticleDTO.setJsonArticle(value);
                         return dailyReadArticleDTO;
                     }
                 }).collect(Collectors.toList());
-
 ```
 
 
 
 #### 1.6.2 每日必读定时刷新
 
-![image-20241106200654710](assets/2024-11-01-ArticleHub.assets/image-20241106200654710.png)
+<img src="assets/2024-11-01-ArticleHub.assets/image-20241113204738436.png" alt="image-20241113204738436" style="zoom: 40%;" />
 
-#### 1.6.2 每日必读点赞以及点赞排行榜
+> - 删除昨天的Zset文章排行榜可以直接把Key`ArticleHub:Ranking:yyyy:MM:dd`删了
+> - 删除昨天各个文章的点赞用户集合需要知道各个文章的Id，因为点赞集合的key是`ArticleHub:Ranking:detail`+`ArticleId`
 
-点赞排行榜以及实现了，因为在《1.6.1 展示每日必读》的时候就是按照点赞的个数从高到低返回给前端的。下面只需要实现点赞功能。
+```java
+@Component
+@Slf4j
+@RequiredArgsConstructor
+public class RankingTask {
+    private final DailyReadArticleMapper dailyReadArticleMapper;
+    private final StringRedisTemplate stringRedisTemplate;
+
+    /**
+     * 定时任务 每天0点0时0分触发
+     */
+	@Scheduled(cron = "0 0 0 * * ?")
+    public void executeTask() {
+        log.info("定时任务开始执行：{}", new Date());
+        List<DailyReadArticle> dailyArticleLists = dailyReadArticleMapper.getDailyArticleLists();
+        String keyPrefix = "ArticleHub:Ranking:";
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime yesterday = now.plusDays(-1L);
+
+        String yesterdayDate = yesterday.format(DateTimeFormatter.ofPattern("yyyy:MM:dd"));
+        String date = now.format(DateTimeFormatter.ofPattern("yyyy:MM:dd"));
+        
+        // 删除旧文章以及点赞旧文章的Set
+        stringRedisTemplate.opsForZSet().removeRange(keyPrefix + yesterdayDate, 0, 9); //删除昨天的
+
+        // stringRedisTemplate.delete("key"); 删除旧的Set
+        for (int i = 0; i < 10; i++) {
+            stringRedisTemplate.delete(keyPrefix + "detail:" + i);
+        }
+
+
+        for (int i = 0; i < dailyArticleLists.size(); i++) {
+
+            String key = "ArticleHub:Ranking:" + date;
+
+            // 新文章加入排行榜
+            stringRedisTemplate.opsForZSet().add(key, JSONUtil.toJsonStr(dailyArticleLists.get(i)), 0);
+
+        }
+        System.out.println(1);
+
+    }
+}
+```
 
 
 
+#### 1.6.2 每日必读点赞以及取消点赞
+
+点赞排行榜已经实现了，因为在《1.6.1 展示每日必读》的时候就是按照点赞的个数从高到低返回给前端的。下面只需要实现点赞功能。
+
+<img src="assets/2024-11-01-ArticleHub.assets/image-20241113205754268.png" alt="image-20241113205754268" style="zoom:50%;" />
+
+```java
+    @PostMapping("/stars")
+    public Result addStar(@RequestBody String jsonArticle) {
+        articleService.addStar(jsonArticle);
+        // jsonArticle是存文章排行榜的Zset的Member，通过DailyReadArticleDTO在《展示每日必读》功能传递给了前端
+        return Result.success();
+    }
+
+    @Override
+    public void addStar(String jsonArticle) {
+        // 1. 解析出articleId
+        DailyReadArticleDTO dailyReadArticleDTO = JSONUtil.toBean(jsonArticle, DailyReadArticleDTO.class);
+        Long articleId = dailyReadArticleDTO.getId();
+        String starsSetKey = "ArticleHub:Ranking:detail:" + articleId;//存这个文章的点赞用户的Set
+
+        String rankingKeyPrefix = "ArticleHub:Ranking:";
+        String date = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy:MM:dd"));
+        String key = rankingKeyPrefix + date;// 排行榜
+
+        Boolean flag = stringRedisTemplate.opsForSet()
+            .isMember(starsSetKey, Long.toString(BaseContext.getCurrentId()));
+
+        // 2.查用户是否已经点赞
+        if (Boolean.TRUE.equals(flag)) {
+            stringRedisTemplate.opsForZSet().add(key, jsonArticle, -1);
+            stringRedisTemplate.opsForSet().remove(starsSetKey, Long.toString(BaseContext.getCurrentId()));
+            return;
+        }
+
+        // 3.文章赞数增加
+        stringRedisTemplate.opsForZSet().add(key, jsonArticle, 1);
+        // 4.用户加入点赞集合
+        stringRedisTemplate.opsForSet().add(starsSetKey, Long.toString(BaseContext.getCurrentId()));
 
 
-
-
-
-
-
+    }
+```
 
 ### 1.9 异步AI总结
 
