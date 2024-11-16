@@ -433,7 +433,7 @@ public class CoursePublishTask extends MessageProcessAbstract {
 
 ### 1.4 异步课程优惠券秒杀
 
-
+![image-20241116152627523](assets/2024-10-26-OnlineItEduPlatform.assets/image-20241116152627523.png)
 
 ### 1.5 签到功能，统计连续签到天数
 
