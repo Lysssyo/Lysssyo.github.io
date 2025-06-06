@@ -1287,6 +1287,9 @@ spring:
 消费者如何保证消息一定被消费?
 
 - 开启消费者确认机制为auto，由spring确认消息处理成功后返回ack，异常时返回nack
+
+  > 可能出现死循环
+
 - 或者开启消费者失败重试机制，并设置MessageRecoverer，多次重试失败后将消息投递到异常交换机，交由人工处理
 
 ### 4.4 兜底方案
@@ -1391,7 +1394,57 @@ public MessageConverter messageConverter(){
 
 
 
-## 5. 延迟信息
+## 6. 顺序性
+
+MQ发信息是有序的，只会在消费信息的时候乱序，出现乱序的场景：
+
+- 一个队列有多个消费者
+
+<img src="https://upload-images.jianshu.io/upload_images/8494967-e450c6cb00e84866.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom: 50%;" />
+
+- 一个queue对应一个consumer，但是consumer里面进行了多线程消费，这样也会造成消息消费顺序错误
+
+  <img src="https://upload-images.jianshu.io/upload_images/8494967-65a77852d22d0833.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom:50%;" />
+
+保证消息的顺序性
+
+- 拆分多个queue，每个queue一个consumer，就是多一些queue而已，确实是麻烦点；这样也会造成吞吐量下降
+
+  > MQ层面保证顺序性，按业务 key 分片路由多个 queue + 每 queue 1 个消费者（worker）
+  >
+  > 这个方案的本质是“**逻辑分片（shard）+ 分治处理**”。
+  >
+  > - 例如你按 userId 取模后路由：
+  >
+  >   ```
+  >   userId % 4 → queue_0 ~ queue_3
+  >   ```
+  >
+  > - 每个 queue 保证“同一用户的消息”都落到固定队列
+  >
+  > - 每个 queue 配一个 consumer，**内部严格按顺序处理消息**
+
+  <img src="https://upload-images.jianshu.io/upload_images/8494967-12a89bd74e2f5135.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom:50%;" />
+
+- 一个 queue，一个 consumer，consumer 内用内存队列做顺序控制再分发，然后分发给底层不同的worker来处理
+
+  > 消费段保证顺序性
+
+  工作流程：
+
+  - 一个 queue + 一个 consumer
+  - consumer 接收消息后，放入某个内存消息通道（比如按 userId 分发到不同本地 worker 的队列）
+  - 每个 worker 负责一个 userId 的处理，串行执行
+
+  ```
+  RabbitMQ Queue → 单个 Consumer → userId 路由到内存Map<userId, 队列> → 各自worker消费
+  ```
+
+  
+
+<img src="https://upload-images.jianshu.io/upload_images/8494967-5edc7ed5df03d12a.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom:50%;" />
+
+## 7. 延迟信息
 
 在电商的支付业务中，对于一些库存有限的商品，为了更好的用户体验，通常都会在用户下单时立刻扣减商品库存。例如电影院购票、高铁购票，下单后就会锁定座位资源，其他人无法重复购买。
 
@@ -1406,9 +1459,9 @@ public MessageConverter messageConverter(){
 - 死信交换机+TTL
 - 延迟消息插件
 
-### 5.1 死信交换机和延迟消息
+### 7.1 死信交换机和延迟消息
 
-#### 5.1.1 死信交换机
+#### 7.1.1 死信交换机
 
 当一个队列中的消息满足下列情况之一时，可以成为死信（dead letter）：
 
@@ -1424,7 +1477,7 @@ public MessageConverter messageConverter(){
 2. 收集那些因队列满了而被拒绝的消息
 3. 收集因TTL（有效期）到期的消息
 
-#### 5.1.2 延迟信息
+#### 7.1.2 延迟信息
 
 前面两种作用场景可以看做是把死信交换机当做一种消息处理的最终兜底方案，与消费者重试时讲的`RepublishMessageRecoverer`作用类似。
 
@@ -1462,7 +1515,7 @@ RabbitMQ的消息过期是基于追溯方式来实现的，也就是说当一个
 
 当队列中消息堆积很多的时候，过期消息可能不会被按时处理，因此你设置的TTL时间不一定准确。
 
-### 5.2 DelayExchange
+### 7.2 DelayExchange
 
 基于死信队列虽然可以实现延迟消息，但是太麻烦了。因此RabbitMQ社区提供了一个延迟消息插件来实现相同的效果。
 
