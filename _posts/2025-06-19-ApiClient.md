@@ -3,6 +3,7 @@ title: ApiClient
 date: 2025-06-06 09:00:00 +0800
 categories: [Java,JavaWeb]
 tags: []
+mermaid: true
 ---
 
 
@@ -57,7 +58,7 @@ public class DemoApp {
 
 
 
-## 3 · 架构总览
+## 3. 架构总览
 
 ### 3.1 时序图
 
@@ -77,7 +78,7 @@ sequenceDiagram
 
 ### 3.2 简化类图
 
-
+------
 
 ## 4 · 核心组件
 
