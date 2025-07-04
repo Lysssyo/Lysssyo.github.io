@@ -1,259 +1,229 @@
 ---
-title: resilience4j
+title: ApiClient
 date: 2025-06-06 09:00:00 +0800
 categories: [Java,JavaWeb]
-tags: [熔断、限流、降级]
+tags: []
 ---
 
 
 
+## 1. 概览
+
+本 SDK 为调用第三方 REST 接口提供一套 **弹性治理 + 插件式流水线** 框架：
+
+- 暴露两个入口：`ApiClient.postSync()` 和 `ApiClient.postAsync()`。
+- 内置插件顺序：`TokenPlugin → RequestPlugin → ResponsePlugin`（通过 `@Order` 控制）。
+- 默认使用 AES‑CBC‑PKCS5 加密与双 MD5 签名（可替换）。
+- 异步调用基于 `CompletableFuture`，线程池可自定义注入。
 
 
-[官方文档](https://resilience4j.readme.io/docs/getting-started)
 
-[官方Demo](https://github.com/resilience4j/resilience4j-spring-boot2-demo)
+## 2. 快速开始
 
-## 1. 熔断器
+### 2.1 环境要求
 
-> The CircuitBreaker is implemented **via a finite state machine** with **three normal states: CLOSED, OPEN and HALF_OPEN** and three special states METRICS_ONLY, DISABLED and FORCED_OPEN.
->
-> The CircuitBreaker uses a **sliding window** to store and aggregate the outcome of calls. You can choose between a count-based sliding window and a time-based sliding window. The count-based sliding window aggregrates the outcome of the last N calls. The time-based sliding window aggregrates the outcome of the calls of the last N seconds.
+- **JDK 17+**
+- **Spring Boot 3.x**
+- **Maven 3.9+** / Gradle 8+
+- Redis（仅当使用默认的 `TokenPlugin` 缓存实现时需要）
 
-![image-20250619190027307](assets/2025-06-19-resilience4j.assets/image-20250619190027307.png)
+### 2.2 依赖引入（Maven）
 
-**核心参数**
+```xml
+<dependency>
+    <groupId>com.example</groupId>
+    <artifactId>api-client-sdk</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
 
-|                 参数名                  |                             作用                             |
-| :-------------------------------------: | :----------------------------------------------------------: |
-|         `failureRateThreshold`          |          失败率阈值（百分比），超过则跳转到OPEN状态          |
-|       `slowCallDurationThreshold`       |                定义慢调用的时间阈值（如2秒）                 |
-| `permittedNumberOfCallsInHalfOpenState` |    HALF_OPEN状态下允许的试探调用数，全部成功则回到CLOSED     |
-|        `waitDurationInOpenState`        |       OPEN状态等待时间，之后自动或手动切换到HALF_OPEN        |
-|           `slidingWindowType`           | 滑动窗口类型（`COUNT_BASED`基于调用次数，`TIME_BASED`基于时间窗口） |
-
-**使用方式**
-
-1. 注解方式
-
-   ```java
-   @Service
-   public class UserService {
-   
-       // 当调用失败率达到阈值时，触发熔断
-       @CircuitBreaker(name = "userService", fallbackMethod = "getUserFallback")
-       public String getUser(String userId) {
-           // 模拟可能失败的服务调用
-           if (userId.equals("error")) {
-               throw new RuntimeException("模拟服务失败");
-           }
-           return "User-" + userId;
-       }
-   
-       // Fallback方法（参数需与原方法一致，最后加一个异常参数）
-       private String getUserFallback(String userId, Exception ex) {
-           return "Fallback User (CircuitBreaker triggered: " + ex.getMessage() + ")";
-       }
-   }
-   ```
-
-   对应配置文件
-
-   ```yaml
-   resilience4j:
-     circuitbreaker:
-       instances:
-         userService:
-           failureRateThreshold: 50     # 失败率阈值（%）
-           slidingWindowSize: 10       # 滑动窗口大小
-           minimumNumberOfCalls: 5     # 最小调用次数
-           waitDurationInOpenState: 5s # OPEN→HALF_OPEN等待时间
-   ```
-
-2. 编程式配置（直接使用 Resilience4j API）
-
-   ```java
-   public class PaymentService {
-   
-       private final CircuitBreaker circuitBreaker;
-   
-       public PaymentService() {
-           // 1. 自定义配置
-           CircuitBreakerConfig config = CircuitBreakerConfig.custom()
-               .failureRateThreshold(50)
-               .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
-               .slidingWindowSize(10)
-               .waitDurationInOpenState(Duration.ofSeconds(5))
-               .build();
-   
-           // 2. 创建实例
-           this.circuitBreaker = CircuitBreaker.of("paymentService", config);
-       }
-   
-       public String processPayment(String orderId) {
-           // 3. 使用装饰器执行受保护逻辑
-           return circuitBreaker.executeSupplier(() -> {
-               if (orderId.startsWith("FAIL")) {
-                   throw new RuntimeException("支付失败");
-               }
-               return "Payment processed: " + orderId;
-           });
-       }
-   }
-   ```
-
-3. 使用装饰器模式
-
-   ```java
-   @Service
-   public class ResilienceServiceImpl implements ResilienceService {
-   
-       private final CircuitBreakerRegistry circuitBreakerRegistry;
-       private final RateLimiterRegistry rateLimiterRegistry;
-       private final RetryRegistry retryRegistry;
-   
-       public ResilienceServiceImpl(CircuitBreakerRegistry cbRegistry,
-                                    RateLimiterRegistry rlRegistry,
-                                    RetryRegistry retryRegistry) {
-           this.circuitBreakerRegistry = cbRegistry;
-           this.rateLimiterRegistry = rlRegistry;
-           this.retryRegistry = retryRegistry;
-       }
-   
-       @Override
-       public <T> Supplier<T> decorate(String key, Supplier<T> call, Function<Throwable, T> fallback) {
-           CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker(key, getCircuitBreakerConfig(key));
-           RateLimiter rl = rateLimiterRegistry.rateLimiter(key, getRateLimiterConfig(key));
-           Retry retry = retryRegistry.retry(key, getRetryConfig(key));
-   
-           return Decorators.ofSupplier(call)
-                   .withCircuitBreaker(cb)
-                   .withRateLimiter(rl)
-                   .withRetry(retry)
-                   .withFallback(Collections.singletonList(Throwable.class), fallback)
-                   .decorate();
-       }
-   
-       @Override
-       public <T> CompletableFuture<T> decorateAsync(String key,
-                                                     Supplier<CompletableFuture<T>> call,
-                                                     Function<Throwable, CompletableFuture<T>> fallback) {
-           CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker(key, getCircuitBreakerConfig(key));
-           RateLimiter rl = rateLimiterRegistry.rateLimiter(key, getRateLimiterConfig(key));
-           Retry retry = retryRegistry.retry(key, getRetryConfig(key));
-   
-           return Decorators.ofSupplier(call)
-                   .withCircuitBreaker(cb)
-                   .withRateLimiter(rl)
-                   .withRetry(retry)
-                   .withFallback(Collections.singletonList(Throwable.class), fallback)
-                   .decorate()
-                   .get()
-                   .toCompletableFuture();
-       }
-   
-       // 根据 key 动态配置策略（可扩展为从 Redis / YAML / Nacos 加载）
-       private CircuitBreakerConfig getCircuitBreakerConfig(String key) {
-           if (key.contains("/startCharging")) {
-               return CircuitBreakerConfig.custom()
-                       .failureRateThreshold(50)
-                       .slidingWindowSize(10)
-                       .waitDurationInOpenState(Duration.ofSeconds(30))
-                       .build();
-           }
-           return CircuitBreakerConfig.ofDefaults();
-       }
-   
-       private RateLimiterConfig getRateLimiterConfig(String key) {
-           if (key.contains("/queryToken")) {
-               return RateLimiterConfig.custom()
-                       .limitRefreshPeriod(Duration.ofSeconds(1))
-                       .limitForPeriod(30)
-                       .timeoutDuration(Duration.ofMillis(0))
-                       .build();
-           } else if (key.contains("/startCharging")) {
-               return RateLimiterConfig.custom()
-                       .limitRefreshPeriod(Duration.ofSeconds(1))
-                       .limitForPeriod(5)
-                       .timeoutDuration(Duration.ofMillis(0))
-                       .build();
-           }
-           return RateLimiterConfig.ofDefaults();
-       }
-   
-       private RetryConfig getRetryConfig(String key) {
-           if (key.contains("/startCharging")) {
-               return RetryConfig.custom()
-                       .maxAttempts(2)
-                       .waitDuration(Duration.ofMillis(300))
-                       .build();
-           }
-           return RetryConfig.custom()
-                   .maxAttempts(3)
-                   .waitDuration(Duration.ofMillis(500))
-                   .build();
-       }
-   }
-   ```
-
-对比以上两种使用方式，很明显注解的方式会比较简单，但是如果一个接口又要熔断、限流、重试，那么注解就要写很多，导致注解爆炸，解决方法可用采用一个自定义注解封装这几个注解。第三种方法我觉得是最好的，可用根据不同的业务的key从库中拿到熔断、限流、重试器的配置，然后通过注册器组装，再把原始调用封装进去就能用了，详见下一篇ApiClient
-
-限流、重试的配置思路大体和上面一样，也可以参考官方文档和官方demo
-
-## 2. 限流器
-
-限流器的底层是令牌桶，不过不同于传统令牌桶
-
-传统令牌桶是**持续匀速**添加令牌，而Resilience4j采用**离散补充**方式：
-
-|     类型     |   补充方式   | 示例（10个/10秒） |
-| :----------: | :----------: | :---------------: |
-|  经典令牌桶  |  每1秒加1个  |    0.1个/毫秒     |
-| Resilience4j | 每10秒加10个 |     瞬间补满      |
-
-这种设计优势：
-
-1. 计算更简单（无需记录最后补充时间）
-2. 性能更高（减少CAS操作次数）
-3. 更适合突发流量控制
-
-## 3. 重试
-
-重试可以配置最大重试次数以及重试间隔时间，甚至这个重试间隔时间可以用函数配置，例如可以考虑指数退避函数
-
-|     组件     | 是否计入重试调用 |           原因说明           |
-| :----------: | :--------------: | :--------------------------: |
-|  **限流器**  |     ❌ 不计入     | 所有重试调用都发生在限流之后 |
-|  **熔断器**  |     ✅ 会计入     |  每次重试都会经过熔断器检查  |
-| **原始调用** | ✅ 所有尝试都计入 |   每次重试都会进行实际调用   |
-
-## 4. Fallback
-
-降级逻辑。
-
-|     模块     |      功能      | 执行位置 |          触发条件          |
-| :----------: | :------------: | :------: | :------------------------: |
-|  **限流器**  |  控制请求速率  |  最外层  |   请求超过配额时立即拒绝   |
-|  **熔断器**  |  防止下游过载  |  限流后  |  失败率达到阈值时自动熔断  |
-| **重试机制** | 提高请求成功率 |  熔断后  |     对特定异常进行重试     |
-| **Fallback** |  提供优雅降级  |  最内层  | 当所有保护机制都失败时执行 |
+### 2.3 最小示例
 
 ```java
-    @Override
-    public <T> Supplier<T> decorate(String key, Supplier<T> call, Function<Throwable, T> fallback) {
-        CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker(key, getCircuitBreakerConfig(key));
-        RateLimiter rl = rateLimiterRegistry.rateLimiter(key, getRateLimiterConfig(key));
-        Retry retry = retryRegistry.retry(key, getRetryConfig(key));
+@SpringBootApplication
+public class DemoApp {
+    public static void main(String[] args) {
+        var ctx = SpringApplication.run(DemoApp.class, args);
+        ApiClient api = ctx.getBean(ApiClient.class);
 
-        return Decorators.ofSupplier(call)
-                .withCircuitBreaker(cb)
-                .withRateLimiter(rl)
-                .withRetry(retry)
-                .withFallback(Collections.singletonList(Throwable.class), fallback) // 由调用者定义
-                .decorate();
+        JSONObject resp = api.postSync("/query_order", Map.of(
+            "orderId", "20250704001"
+        ));
+
+        System.out.println(resp.toJSONString());
     }
+}
 ```
 
 
 
+## 3 · 架构总览
+
+### 3.1 时序图
+
+```mermaid
+sequenceDiagram
+    Caller->>ApiClient: postSync()
+    ApiClient->>ResilienceService: decorate(Supplier)
+    ResilienceService->>PluginChain: doChain(context)
+    PluginChain->>+TokenPlugin: apply()
+    TokenPlugin-->>PluginChain: context
+    PluginChain->>+RequestPlugin: apply()
+    RequestPlugin-->>PluginChain: context (raw response)
+    PluginChain->>+ResponsePlugin: apply()
+    ResponsePlugin-->>ResilienceService: context (parsed)
+    ResilienceService-->>Caller: JSONObject | fallback
+```
+
+### 3.2 简化类图
 
 
+
+## 4 · 核心组件
+
+| 组件                  | 职责                                                         |
+| --------------------- | ------------------------------------------------------------ |
+| **ApiClient**         | 公共门面；构造 `ApiContext`，启动插件链；处理同步 / 异步分支 |
+| **ApiPlugin**         | 纯函数 `apply(ApiContext)`；顺序由 `@Order` / `Ordered` 决定 |
+| **ApiContext**        | 在插件间传递数据的可变载体                                   |
+| **ResilienceService** | 为调用包裹 CircuitBreaker、RateLimiter、Retry、Bulkhead；可按 URL 选择策略 |
+| **HttpService**       | 极薄的 Hutool POST 封装；可替换                              |
+
+------
+
+## 5 · 内置插件
+
+### 5.1 TokenPlugin
+
+- **位置**：链首（order = 0）。
+- **功能**：通过 `/query_token` 获取或复用访问 Token。
+- **缓存**：Redis `SETEX`，TTL 可配置；Key = `token:{appId}`。
+- **扩展**：实现 `TokenProvider` 即可替换缓存层。
+
+### 5.2 RequestPlugin
+
+- 从 context 读取业务参数。
+- 加密载荷 → 计算签名。
+- 通过 `HttpService` 发 HTTP POST。
+- 将原始响应文本写入 context (`RAW_RESPONSE`)。
+
+### 5.3 ResponsePlugin
+
+- 解密并解析 JSON。
+- `Ret != 0` 时抛出 `ApiException`。
+- 将解析结果写入 `PARSED_RESPONSE`。
+
+------
+
+## 6 · Resilience4j 配置
+
+### 6.1 YAML 示例
+
+```yaml
+api:
+  resilience:
+    default:
+      circuitBreaker:
+        failureRateThreshold: 50
+        slidingWindowSize: 20
+        waitDurationInOpenState: 10s
+      retry:
+        maxAttempts: 3
+        backoff:
+          delay: 200ms
+          multiplier: 2
+```
+
+### 6.2 动态策略
+
+`ResilienceServiceImpl` 根据 URL 前缀返回不同配置：
+
+```java
+if (url.startsWith("/query_token")) {
+    return fastRetryBreakerConfig();
+} else if (url.contains("/payment")) {
+    return aggressiveCircuitConfig();
+}
+```
+
+可用 **配置中心**（如 Nacos / Consul）替换 `if` 逻辑，支持热更新。
+
+------
+
+## 7 · 安全
+
+- **加密**：AES‑128‑CBC + PKCS5Padding。IV 及密钥从 Spring 配置或 Vault 加载。
+- **签名**：默认 `md5( secret + md5(payload) )`；实现 `SignAlgorithm` SPI 可换 HMAC‑SHA256。
+- **生产建议**：
+  - 密钥放在 KMS，不要硬编码在 YAML。
+  - 定期轮换；暴露 `KeySupplier` Bean。
+
+------
+
+## 8 · 扩展指南
+
+### 8.1 新增自定义插件
+
+```java
+@Component
+@Order(50)
+public class LoggingPlugin implements ApiPlugin {
+    @Override
+    public void apply(ApiContext ctx) {
+        log.info("REQ: {}", ctx.get("ENCRYPTED_BODY"));
+    }
+}
+```
+
+### 8.2 注入自定义线程池
+
+```java
+@Bean
+public Executor apiExecutor() {
+    return new ThreadPoolExecutor(
+        32, 64,
+        60, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<>(),
+        new ThreadFactoryBuilder().setNameFormat("api-worker-%d").build()
+    );
+}
+```
+
+### 8.3 替换 `HttpService`
+
+实现 `HttpService` 接口并加 `@Primary` 注解即可。
+
+------
+
+## 9 · 故障排查
+
+| 异常                         | 常见原因             | 处理办法                            |
+| ---------------------------- | -------------------- | ----------------------------------- |
+| `SignatureMismatchException` | 密钥错误或载荷被篡改 | 检查配置，在本地重新签名对比        |
+| `CallNotPermittedException`  | 断路器打开           | 查看错误率 & 半开状态指标           |
+| `BulkheadFullException`      | 线程池耗尽           | 增加线程池，或改用响应式链路        |
+| `TimeoutException`           | 下游接口延迟         | 调整 `timeoutDuration` 或启用 Retry |
+
+日志类别：`com.example.api.*`，默认 **INFO**；问题排查时可调至 **DEBUG**。
+
+------
+
+## 10 · 版本历史
+
+| 版本  | 日期       | 关键更新     |
+| ----- | ---------- | ------------ |
+| 1.0.0 | 2025-07-04 | 首次公开发布 |
+
+------
+
+## 11 · 许可证 / 贡献
+
+本项目基于 **Apache 2.0** 协议开源。欢迎以 PR 形式贡献代码：
+
+1. Fork → 新建功能分支。
+2. 补充测试（`mvn test`）。
+3. 提 PR，并关联 Issue。
+
+------
+
+**Happy hacking!**
