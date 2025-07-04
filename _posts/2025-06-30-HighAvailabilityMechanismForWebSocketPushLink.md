@@ -7,20 +7,6 @@ tags: []
 
 
 
-
-
-我在参与一个充电小程序的后端开发，我现在在实现一个websocket的服务，大概要做的是：上游会通过MQ把某一笔订单的充电状态推送到下游MQ消费者（这里是通过直接调用controller的接口模拟），MQ消费者检查完会把消息发到对应的频道，以下是代码，还有什么地方可以优化呢？
-
-TODO：
-
-- **弱引用 & 清理**
-   如果程序异常关闭或 network 问题导致 `afterConnectionClosed` 未被调用，`sessionMap` 可能残留死会话。可结合 Session 心跳超时清理：定期扫一遍 `session.isOpen()==false` 的条目并移除。
-- **Handshake 时的认证**
-   直接从 `session.getUri().getQuery()` 拿 `userId`，安全性较弱，容易被伪造。可在 WebSocket 握手阶段做 JWT 鉴权或用 `HandshakeInterceptor` 从 HTTP Header/Token 里提取，并把 `userId` 存到 `session.getAttributes()`。
-- 「利用 Micrometer + Prometheus 统计「每秒消息量」「平均延迟」「失败率」等关键指标。」要怎么做
-
-
-
 ## 1. 概述
 
 本服务基于 Spring Boot，整合了 RabbitMQ、Redis 和 WebSocket，提供了 WebSocket 的实时推送和离线补偿功能。核心设计思路如下：
