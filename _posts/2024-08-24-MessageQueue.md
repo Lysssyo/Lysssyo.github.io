@@ -144,7 +144,7 @@ tags: [Java, MessageQueue,RabbitMQ,SpringAMOP]
 
 > 1. `queue`需要与`exchange`绑定，发送到`exchange`的信息才回到`queue`
 >
->    <img src="/assets/MessageQueue.assets/image-20240819205455568.png" alt="image-20240819205455568" style="zoom:50%;">
+>    <img src="assets/MessageQueue.assets/image-20240819205455568.png" alt="image-20240819205455568" style="zoom:50%;">
 >
 >    > 控制台需要在服务器的docker容器安装好后，在服务器的`15672`端口运行
 >
@@ -207,10 +207,10 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
 
 交换机的类型有四种：
 
-- **Fanout**：广播，将消息交给所有绑定到交换机的队列。我们最早在控制台使用的正是Fanout交换机
+- **Fanout**：广播，将消息交给所有绑定到交换机的队列
 - **Direct**：订阅，基于RoutingKey（路由key）发送给订阅了消息的队列
 - **Topic**：通配符订阅，与Direct类似，只不过RoutingKey可以使用通配符
-- **Headers**：头匹配，基于MQ的消息头匹配，用的较少。
+- **Headers**：头匹配，基于MQ的消息头匹配，用的较少
 
 #### 3.2.1 Fanout
 
@@ -273,7 +273,7 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
 
 在`Fanout`模式中，一条消息，会被所有订阅的队列都消费。但是，在某些场景下，我们希望**不同的消息被不同的队列消费**。这时就要用到`Direc`t类型的`Exchange`。
 
-<img src="/assets/MessageQueue.assets/image-20240820181443472.png" alt="image-20240820181443472" style="zoom:67%;">
+<img src="assets/MessageQueue.assets/image-20240820181443472.png" alt="image-20240820181443472" style="zoom:67%;">
 
 在Direct模型下：
 
@@ -320,7 +320,7 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
     }
 ```
 
-![image-20240820182818227](/assets/MessageQueue.assets/image-20240820182818227.png)
+![image-20240820182818227](assets/MessageQueue.assets/image-20240820182818227.png)
 
 >描述下Direct交换机与Fanout交换机的差异？
 >
@@ -339,7 +339,7 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
 >   - `#`：匹配一个或多个词
 >   - `*`：匹配不多不少恰好1个词
 
-<img src="/assets/MessageQueue.assets/image-20240820203243340.png" alt="image-20240820203243340" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240820203243340.png" alt="image-20240820203243340" style="zoom:50%;">
 
 - `topic.queue1`：绑定的是`china.#` ，凡是以 `china.`开头的`routing key` 都会被匹配到，包括：
   - `china.news`
@@ -363,19 +363,19 @@ Exchange（交换机）**只负责转发消息，不具备存储消息的能力*
 
 `SpringAMQP`提供了一个`Queue`类，用来创建队列
 
-<img src="/assets/MessageQueue.assets/image-20240820205538004.png" alt="image-20240820205538004" style="zoom:67%;">
+<img src="assets/MessageQueue.assets/image-20240820205538004.png" alt="image-20240820205538004" style="zoom:67%;">
 
 `SpringAMQP`还提供了一个`Exchange`接口，来表示所有不同类型的交换机
 
-<img src="/assets/MessageQueue.assets/image-20240820205602784.png" alt="image-20240820205602784" style="zoom:67%;">
+<img src="assets/MessageQueue.assets/image-20240820205602784.png" alt="image-20240820205602784" style="zoom:67%;">
 
 我们可以自己创建队列和交换机，不过SpringAMQP还提供了ExchangeBuilder来简化这个过程
 
-<img src="/assets/MessageQueue.assets/image-20240820205633471.png" alt="image-20240820205633471" style="zoom: 67%;">
+<img src="assets/MessageQueue.assets/image-20240820205633471.png" alt="image-20240820205633471" style="zoom: 67%;">
 
 而在绑定队列和交换机时，则需要使用BindingBuilder来创建Binding对象：
 
-<img src="/assets/MessageQueue.assets/image-20240820205657468.png" alt="image-20240820205657468" style="zoom:67%;">
+<img src="assets/MessageQueue.assets/image-20240820205657468.png" alt="image-20240820205657468" style="zoom:67%;">
 
 一般可以在消费者这边声明队列、交换机和绑定关系，因为作为发送方来讲，发送方不需要关心队列，发送发唯一关心的是交换机，向某个交换机发消息就可以了
 
@@ -559,7 +559,7 @@ public void listenTopicQueue2(String msg){
 
 Spring的消息发送代码接收的消息体是一个Object：
 
-<img src="/assets/MessageQueue.assets/image-20240821004352583.png" alt="image-20240821004352583" style="zoom: 50%;">
+<img src="assets/MessageQueue.assets/image-20240821004352583.png" alt="image-20240821004352583" style="zoom: 50%;">
 
 而在数据传输时，它会把你发送的消息序列化为字节发送给MQ，接收消息的时候，还会把字节反序列化为Java对象。
 
@@ -617,7 +617,7 @@ Spring的消息发送代码接收的消息体是一个Object：
 
 消息从发送者发送消息，到消费者处理消息，需要经过的流程是这样的：
 
-<img src="/assets/MessageQueue.assets/image-20240821150117443.png" alt="image-20240821150117443" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240821150117443.png" alt="image-20240821150117443" style="zoom:50%;">
 
 消息从生产者到消费者的每一步都可能导致消息丢失：
 
@@ -803,15 +803,15 @@ spring:
 
    1. 没有到达交换机
 
-      ![image-20240821201948884](/assets/MessageQueue.assets/image-20240821201948884.png)
+      ![image-20240821201948884](assets/MessageQueue.assets/image-20240821201948884.png)
 
    2. 到了交换机路由失败
 
-      ![image-20240821202128683](/assets/MessageQueue.assets/image-20240821202128683.png)
+      ![image-20240821202128683](assets/MessageQueue.assets/image-20240821202128683.png)
 
    3. 到了交换机且路由成功
 
-      ![image-20240821203202210](/assets/MessageQueue.assets/image-20240821203202210.png)
+      ![image-20240821203202210](assets/MessageQueue.assets/image-20240821203202210.png)
 
 注意：
 
@@ -849,7 +849,7 @@ spring:
 
    设置 `durable=true`，表示**RabbitMQ 重启后交换机仍然存在**，不会丢失。
 
-   <img src="/assets/MessageQueue.assets/image-20240821211201804.png" alt="image-20240821211201804" style="zoom:50%;">
+   <img src="assets/MessageQueue.assets/image-20240821211201804.png" alt="image-20240821211201804" style="zoom:50%;">
 
    > SpringAMQP创建的交换机默认持久化
    >
@@ -923,7 +923,7 @@ spring:
        }
    ```
    
-   <img src="/assets/MessageQueue.assets/image-20240821211717209.png" alt="image-20240821211717209" style="zoom:67%;">
+   <img src="assets/MessageQueue.assets/image-20240821211717209.png" alt="image-20240821211717209" style="zoom:67%;">
 
 #### 4.2.2 LazyQueue
 
@@ -963,7 +963,7 @@ public Queue lazyQueue(){
 
 > 这里是通过`QueueBuilder`的`lazy()`函数配置Lazy模式，底层源码如下：
 >
-> <img src="/assets/MessageQueue.assets/image-20240821213137634.png" alt="image-20240821213137634" style="zoom:50%;">
+> <img src="assets/MessageQueue.assets/image-20240821213137634.png" alt="image-20240821213137634" style="zoom:50%;">
 
 当然，我们也可以基于注解来声明队列并设置为Lazy模式：
 
@@ -980,11 +980,11 @@ public void listenLazyQueue(String msg){
 
 > 队列接收到信息后：
 >
-> ![image-20240821214413681](/assets/MessageQueue.assets/image-20240821214413681.png)
+> ![image-20240821214413681](assets/MessageQueue.assets/image-20240821214413681.png)
 >
 > 如果不是lazyQueue：
 >
-> ![image-20240821215207435](/assets/MessageQueue.assets/image-20240821215207435.png)
+> ![image-20240821215207435](assets/MessageQueue.assets/image-20240821215207435.png)
 >
 > **消息（总数、就绪、未确认）**：
 >
@@ -1024,6 +1024,62 @@ public void listenLazyQueue(String msg){
 - **`none`**：不处理。即消息投递给消费者后立刻ack，消息会立刻从MQ删除。非常不安全，不建议使用
 
 - **`manual`**：手动模式。需要自己在业务代码中调用api，发送`ack`或`reject`，存在业务入侵，但更灵活
+
+  ```java
+      @RabbitListener(queues = RabbitmqConfig3.CRM_ORDER_QUEUE, concurrency = "8")
+      public void onMessage(@Payload OrderFinishedEvent event, Message message, Channel channel) throws Exception {
+          long tag = message.getMessageProperties().getDeliveryTag();
+          int retry = (int) message.getMessageProperties().getHeaders().getOrDefault("x-retry", 0);
+          try {
+              if (!dedupService.claim(event.getOrderId())) {
+                  log.info("[MQ] duplicate order {} ignored", event.getOrderId());
+                  channel.basicAck(tag, false);
+                  return;
+              }
+              crmClient.push(event);
+              log.info("[MQ] pushed order {} to CRM", event.getOrderId());
+              channel.basicAck(tag, false);
+          } catch (Exception ex) {
+              log.error("[MQ] push fail order {} retry {}", event.getOrderId(), retry, ex);
+              if (retry < MAX_RETRY) {
+                  message.getMessageProperties().getHeaders().put("x-retry", retry + 1);
+                  channel.basicNack(tag, false, false); // 进入 DLX 延迟队列
+              } else {
+                  dedupService.markFailed(event.getOrderId());
+                  channel.basicAck(tag, false);
+              }
+          }
+      }
+  ```
+
+  在 `Channel` 层面，**`basicAck` 和 `basicNack`** 是 RabbitMQ *显式确认*（manual acknowledge）协议的核心 API
+
+  1. `channel.basicAck(long deliveryTag, boolean multiple)`
+
+  | 参数          | 作用                                                         |
+  | ------------- | ------------------------------------------------------------ |
+  | `deliveryTag` | **通道内自增序号**，代表*哪一条*消息被确认。由 `MessageProperties#getDeliveryTag()` 取得。 |
+  | `multiple`    | `true` = 把 **到当前 tag 为止的所有未确认消息** 一起确认（批量）；`false` = 仅当前这条。 |
+
+  > **语义**：Broker 收到 ACK 后就立即把这条消息从队列的 *unacked* 区域删除，永不再投递。
+  >  **代码中的两次 `basicAck(tag, false)`**
+  >
+  > 1. 发现重复消息 → 直接确认，省资源。
+  > 2. 推送 CRM 成功 → 业务完成，确认并释放交付标记。
+
+  2. `channel.basicNack(long deliveryTag, boolean multiple, boolean requeue)`
+
+  | 参数          | 作用                                                         |
+  | ------------- | ------------------------------------------------------------ |
+  | `deliveryTag` | 和 ACK 一样，指明哪条消息（或在哪之前的多条）。              |
+  | `multiple`    | 批量 NACK；通常保持 `false`，避免把“健康消息”一起打回。      |
+  | `requeue`     | `true` = 直接回到**同一个队列尾部**；`false` = **不回原队列**，而是走 **死信逻辑**（如果配置了 `x-dead-letter-exchange`）。 |
+
+  为何示例代码写 `requeue=false`？
+
+  1. **需要延迟重试**：回到同队列不会产生延迟，又会立即被同集群消费，形不成退避。
+  2. **防止“消息打滚”**：如果 CRM 永远 500，立刻重投 → 又失败 → 再重投 … 队列会被卡死。
+  3. **让 DLX + TTL 队列接管** 重试节奏（30 s / 5 min …）。
 
 - **`auto`**：自动模式。SpringAMQP利用AOP对我们的消息处理逻辑做了环绕增强，当业务正常执行时则自动返回`ack`.  当业务出现异常时，根据异常判断返回不同结果：
 
@@ -1139,7 +1195,7 @@ spring:
 
 3. 结果
 
-   ![image-20240821230414790](/assets/MessageQueue.assets/image-20240821230414790.png)
+   ![image-20240821230414790](assets/MessageQueue.assets/image-20240821230414790.png)
 
 
 
@@ -1149,7 +1205,7 @@ spring:
 
 极端情况就是消费者一直无法执行成功，那么消息requeue就会无限循环，导致mq的消息处理飙升，带来不必要的压力：
 
-<img src="/assets/MessageQueue.assets/image-20240824155020808.png" alt="image-20240824155020808" style="zoom:80%;">
+<img src="assets/MessageQueue.assets/image-20240824155020808.png" alt="image-20240824155020808" style="zoom:80%;">
 
 当然，上述极端情况发生的概率还是非常低的，不过不怕一万就怕万一。为了应对上述情况Spring又提供了**消费者失败重试机制：在消费者出现异常时利用本地重试**，而不是无限制的requeue到mq队列。
 
@@ -1191,12 +1247,22 @@ spring:
 
 3. 结果：
 
-   ![image-20240824160049872](/assets/MessageQueue.assets/image-20240824160049872.png)
+   ![image-20240824160049872](assets/MessageQueue.assets/image-20240824160049872.png)
 
 4. 结论：
 
    - 开启本地重试时，消息处理过程中抛出异常，不会requeue到队列，而是在消费者本地重试
    - 重试达到最大次数后，**SpringAMOP会返回reject**，消息会被丢弃
+
+注意！！失败后**同一条消息仍占用消费线程**；若重试间隔较长（秒级以上），线程被 block，吞吐骤降（所以**内部重试适合“毫秒级、极少次数”的瞬时异常**；）
+
+什么时候可以只用**内部重试**？
+
+| 典型场景                                    | 原因                                            |
+| ------------------------------------------- | ----------------------------------------------- |
+| 数据库偶发死锁、网络抖动                    | RT<50 ms，重试 1-2 次即可；长时间挂起线程影响小 |
+| 同步调用链需要“失败即回滚”                  | 不允许最终一致；要么立即成功，要么全局事务回滚  |
+| 插件已安装 `x-delayed-message` 但运维不允许 | 小团队可权衡先用内部重试，后期再切 DLX          |
 
 #### 4.3.3 失败处理策略
 
@@ -1212,7 +1278,7 @@ spring:
 
 > 可以通过邮件或者短信告知开发者，由开发者人工处理
 
-![image-20240824161026114](/assets/MessageQueue.assets/image-20240824161026114.png)
+![image-20240824161026114](assets/MessageQueue.assets/image-20240824161026114.png)
 
 
 
@@ -1274,13 +1340,13 @@ spring:
 
    > `@ConditionalOnProperty`注解：在开启消费者失败重试机制的模块才加载的以下的bean，因为开启失败者重试机制要这样配置：
    >
-   > ![image-20240824161622212](/assets/MessageQueue.assets/image-20240824161622212.png)
+   > ![image-20240824161622212](assets/MessageQueue.assets/image-20240824161622212.png)
 
 4. 结果：
 
    ErrorQueue收到信息：
 
-   ![image-20240824162110247](/assets/MessageQueue.assets/image-20240824162110247.png)
+   ![image-20240824162110247](assets/MessageQueue.assets/image-20240824162110247.png)
 
 综上：
 
@@ -1298,7 +1364,7 @@ spring:
 
 例如：既然MQ通知不一定发送到交易服务，那么交易服务就必须自己**主动去查询**支付状态。这样即便支付服务的MQ通知失败，我们依然能通过主动查询来保证订单状态的一致。
 
-<img src="/assets/MessageQueue.assets/image-20240824165411656.png" alt="image-20240824165411656" style="zoom:80%;">
+<img src="assets/MessageQueue.assets/image-20240824165411656.png" alt="image-20240824165411656" style="zoom:80%;">
 
 > 那么问题来了，我们到底该在什么时间主动查询支付状态呢？
 >
@@ -1361,7 +1427,7 @@ public MessageConverter messageConverter(){
 }
 ```
 
-<img src="/assets/MessageQueue.assets/image-20240824164354219.png" alt="image-20240824164354219" style="zoom: 80%;">
+<img src="assets/MessageQueue.assets/image-20240824164354219.png" alt="image-20240824164354219" style="zoom: 80%;">
 
 > 意思就是，SpringAMOP帮你写好了新建MessageId的代码，但是利用MessageId实现业务幂等需要自己写
 
@@ -1400,11 +1466,11 @@ MQ发信息是有序的，只会在消费信息的时候乱序，出现乱序的
 
 - 一个队列有多个消费者
 
-<img src="https://upload-images.jianshu.io/upload_images/8494967-e450c6cb00e84866.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom: 50%;" />
+  <img src="assets/2024-08-24-MessageQueue.assets/image-20250713155122713.png" alt="image-20250713155122713" style="zoom: 80%;" />
 
 - 一个queue对应一个consumer，但是consumer里面进行了多线程消费，这样也会造成消息消费顺序错误
 
-  <img src="https://upload-images.jianshu.io/upload_images/8494967-65a77852d22d0833.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom:50%;" />
+  ![image-20250713155157917](assets/2024-08-24-MessageQueue.assets/image-20250713155157917.png)
 
 保证消息的顺序性
 
@@ -1424,7 +1490,9 @@ MQ发信息是有序的，只会在消费信息的时候乱序，出现乱序的
   >
   > - 每个 queue 配一个 consumer，**内部严格按顺序处理消息**
 
-  <img src="https://upload-images.jianshu.io/upload_images/8494967-12a89bd74e2f5135.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom:50%;" />
+  <img src="assets/2024-08-24-MessageQueue.assets/image-20250713155210411.png" alt="image-20250713155210411" style="zoom:80%;" />
+
+  
 
 - 一个 queue，一个 consumer，consumer 内用内存队列做顺序控制再分发，然后分发给底层不同的worker来处理
 
@@ -1440,9 +1508,9 @@ MQ发信息是有序的，只会在消费信息的时候乱序，出现乱序的
   RabbitMQ Queue → 单个 Consumer → userId 路由到内存Map<userId, 队列> → 各自worker消费
   ```
 
-  
+  <img src="assets/2024-08-24-MessageQueue.assets/image-20250713155221850.png" alt="image-20250713155221850" style="zoom:80%;" />
 
-<img src="https://upload-images.jianshu.io/upload_images/8494967-5edc7ed5df03d12a.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="img" style="zoom:50%;" />
+
 
 ## 7. 延迟信息
 
@@ -1461,21 +1529,119 @@ MQ发信息是有序的，只会在消费信息的时候乱序，出现乱序的
 
 ### 7.1 死信交换机和延迟消息
 
-#### 7.1.1 死信交换机
+#### 7.1.1 死信交换机（DLX）
+
+- **DLX 本质就是普通交换机**（direct/fanout/topic/headers）——只是被「死信」专用。
+- **死信 (Dead Letter)** 指**没有被正常消费完毕**、需要“特殊处理”的消息。
 
 当一个队列中的消息满足下列情况之一时，可以成为死信（dead letter）：
 
-- 消费者使用`basic.reject`或 `basic.nack`声明消费失败，并且消息的`requeue`参数设置为false
-- 消息是一个过期消息，超时无人消费
-- 要投递的队列消息满了，无法投递
+| 触发类型                     | 场景示例                             | Spring AMQP 写法              |
+| ---------------------------- | ------------------------------------ | ----------------------------- |
+| **TTL 过期**                 | 消息或队列 TTL 到期                  | `x-message-ttl`, `expiration` |
+| **被 NACK 并且不重回队列**   | `basicNack(tag,false,false)`         | `channel.basicNack…`          |
+| **被 Reject 并且不重回队列** | `basicReject(tag,false)`             | `channel.basicReject…`        |
+| **队列超长 / 超多字节**      | `x-max-length`, `x-max-length-bytes` | `QueueBuilder…withArgument()` |
 
-如果一个队列中的消息已经成为死信，并且这个队列通过**`dead-letter-exchange`**属性指定了一个交换机，那么队列中的死信就会投递到这个交换机中，而这个交换机就称为**死信交换机**（Dead Letter Exchange）。而此时假如有队列与死信交换机绑定，则最终死信就会被投递到这个队列中。
+> **触发后**：Broker 把消息投递到 **队列参数**
+>  `x-dead-letter-exchange = <DLX>`
+>  `x-dead-letter-routing-key = <DL-RK>` 指定的交换机 / 路由键。
 
 死信交换机有什么作用呢？
 
 1. 收集那些因处理失败而被拒绝的消息
 2. 收集那些因队列满了而被拒绝的消息
 3. 收集因TTL（有效期）到期的消息
+
+示例：
+
+```java
+@Configuration
+public class RabbitmqConfig3 {
+
+    public static final String ORDER_FINISHED_EXCHANGE = "order.finished.x";
+    public static final String CRM_ORDER_QUEUE = "crm.order.q";
+    public static final String CRM_DLX_EXCHANGE = "crm.dlx.x";
+    public static final String CRM_RETRY_QUEUE = "crm.retry.q";
+
+    @Bean
+    public FanoutExchange orderFinishedExchange() {
+        return ExchangeBuilder.fanoutExchange(ORDER_FINISHED_EXCHANGE)
+                .durable(true)
+                .build();
+    }
+
+    @Bean
+    public DirectExchange crmDlxExchange() {
+        return ExchangeBuilder.directExchange(CRM_DLX_EXCHANGE).durable(true).build();
+    }
+
+    @Bean
+    public Queue crmOrderQueue() {
+        return QueueBuilder.durable(CRM_ORDER_QUEUE)
+                .withArgument("x-dead-letter-exchange", CRM_DLX_EXCHANGE) // 设置死信交换机
+                .withArgument("x-dead-letter-routing-key", CRM_RETRY_QUEUE) // 死信交换机路由键
+                .build();
+    }
+
+    @Bean
+    public Queue crmRetryQueue() {
+        return QueueBuilder.durable(CRM_RETRY_QUEUE)
+                .withArgument("x-message-ttl", 30000) // 消息存活 30 秒
+                .withArgument("x-dead-letter-exchange", ORDER_FINISHED_EXCHANGE) // 死信交换机
+                .withArgument("x-dead-letter-routing-key", "") // fanout 模式下 routing key 可为空
+                .build();
+    }
+
+
+    @Bean
+    public Binding crmBinding() {
+        return BindingBuilder.bind(crmOrderQueue()).to(orderFinishedExchange());
+    }
+
+    @Bean
+    public Binding retryBinding() {
+        return BindingBuilder.bind(crmRetryQueue()).to(crmDlxExchange()).with(CRM_RETRY_QUEUE);
+    }
+}
+```
+
+```
+             60s 未消费或处理失败
+[crm.order.q] ───────────▶ [crm.dlx.x] ──(routing key: crm.retry.q)──▶ [crm.retry.q]
+                                ↑                                         ↓
+                      死信交换机（direct）                   TTL: 30 秒后死信
+                                                                          ↓
+                                                       [order.finished.x] (fanout)
+                                                                          ↓
+                                                                  [crm.order.q]（重新处理）
+```
+
+> **消息初始进入 `crm.order.q`**。
+>
+> 如果消费失败或超时 → 死信投递到 `crm.dlx.x`。
+>
+> `crm.dlx.x` → 根据 routing key `crm.retry.q` → 投到 `crm.retry.q`。
+>
+> 在 `crm.retry.q` 等待 30 秒 → 到期 → 死信投递到 `order.finished.x`。
+>
+> `order.finished.x` 是 fanout → 广播到所有绑定的队列 → 又回到了 `crm.order.q`。
+>
+> 实现了：**失败后延迟 30 秒，再次重试消费**。
+
+在上面，死信交换机用作延迟队列。那么死信交换机还有别的用途吗？
+
+| 场景                       | 目标                                                   | 典型做法                                                     | 你的充电订单示例                                             |
+| -------------------------- | ------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| **1. 延迟重试 / 指数退避** | 失败消息隔一段时间再投，化解瞬时故障                   | 业务队列 ➜ DLX ➜ *retry* 队列（带 TTL 或 `x-delay`）➜ 回原交换机 | CRM 接口 502 → 30 s 后再推，仍失败 5 min 后再推              |
+| **2. 峰值削峰 / 弹性缓冲** | 当消费端被打爆时，把 NACK 消息 “缓冲” 一会儿           | 运行时 `basicNack(requeue=false)` ➜ DLX 中转                 | 计费服务宕机：状态消息转入 DLX，待服务恢复再批量处理         |
+| **3. 失效数据归档**        | 业务 TTL 到期的旧消息集中收集，供离线分析或清理        | 队列/消息 TTL → DLX → archive .q                             | 订单 48 h 未支付自动作废，归档到 `order.expired.q`           |
+| **4. 毒性 / 非法消息隔离** | 把无法解析或多次失败的“毒药包”单独沉淀，防止阻塞主队列 | 消费端识别后 `basicReject(...false)` ➜ DLX ➜ parking lot .q  | JSON 字段缺失导致反序列化异常的消息全部进 `order.parking.q` 手工排查 |
+| **5. 队列溢出保护**        | 当主队列超长或超字节时，把新消息自动甩到备用队列       | 在队列上配 `x-max-length` + DLX                              | 高峰期突增的桩状态上报超出 500 k 长度 → 自动分流             |
+| **6. 灰度发布 / 分流试验** | 有选择地把部分流量旁路到测试或影子系统                 | header/规则 NACK ➜ 特定 DLX                                  | 把 1% 订单流量打到 `crm.sandbox.q` 做 AB test                |
+| **7. 监控 & 告警入口**     | 所有异常消息统一收集，便于实时告警                     | DLX 绑定告警服务或 Prometheus exporter                       | `x-death.count>3` 时触发 PagerDuty                           |
+
+
 
 #### 7.1.2 延迟信息
 
@@ -1485,27 +1651,27 @@ MQ发信息是有序的，只会在消费信息的时候乱序，出现乱序的
 
 如图，有一组绑定的交换机（`ttl.fanout`）和队列（`ttl.queue`）。但是`ttl.queue`没有消费者监听，而是设定了死信交换机`hmall.direct`，而队列`direct.queue1`则与死信交换机绑定，RoutingKey是blue
 
-<img src="/assets/MessageQueue.assets/image-20240824203641456.png" alt="image-20240824203641456" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240824203641456.png" alt="image-20240824203641456" style="zoom:50%;">
 
 假如我们现在发送一条消息到`ttl.fanout`，RoutingKey为blue，并设置消息的**有效期**为5000毫秒
 
-<img src="/assets/MessageQueue.assets/image-20240824203703643.png" alt="image-20240824203703643" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240824203703643.png" alt="image-20240824203703643" style="zoom:50%;">
 
 > 尽管这里的`ttl.fanout`不需要`RoutingKey`，但是当消息变为死信并投递到死信交换机时，会沿用之前的`RoutingKey`，这样`hmall.direct`才能正确路由消息。
 
 消息肯定会被投递到`ttl.queue`之后，由于没有消费者，因此消息无人消费。5秒之后，消息的有效期到期，成为死信
 
-<img src="/assets/MessageQueue.assets/image-20240824203741197.png" alt="image-20240824203741197" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240824203741197.png" alt="image-20240824203741197" style="zoom:50%;">
 
 死信被再次投递到死信交换机`hmall.direct`，并沿用之前的RoutingKey，也就是`blue`：
 
-<img src="/assets/MessageQueue.assets/image-20240824203755567.png" alt="image-20240824203755567" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240824203755567.png" alt="image-20240824203755567" style="zoom:50%;">
 
 
 
 由于`direct.queue1`与`hmall.direct`绑定的key是blue，因此最终消息被成功路由到`direct.queue1`，如果此时有消费者与`direct.queue1`绑定， 也就能成功消费消息了。但此时已经是5秒钟以后了：
 
-<img src="/assets/MessageQueue.assets/image-20240824203814718.png" alt="image-20240824203814718" style="zoom:50%;">
+<img src="assets/MessageQueue.assets/image-20240824203814718.png" alt="image-20240824203814718" style="zoom:50%;">
 
 也就是说，publisher发送了一条消息，但最终consumer在5秒后才收到消息。我们成功实现了**延迟消息**。
 
@@ -1519,13 +1685,13 @@ RabbitMQ的消息过期是基于追溯方式来实现的，也就是说当一个
 
 基于死信队列虽然可以实现延迟消息，但是太麻烦了。因此RabbitMQ社区提供了一个延迟消息插件来实现相同的效果。
 
-[Scheduling Messages with RabbitMQ | RabbitMQ](https://www.rabbitmq.com/blog/2015/04/16/scheduling-messages-with-rabbitmq)
+[SchedulingMessagesWithRabbitMQ](https://www.rabbitmq.com/blog/2015/04/16/scheduling-messages-with-rabbitmq)
 
 > 这个插件可以将普通交换机改造为支持延迟消息功能的交换机，当消息投递到交换机后可以暂存一定时间，到期后再投递到队列。
 
 安装、部署见《2. RabbitMQ》
 
-![image-20240824205826540](/assets/MessageQueue.assets/image-20240824205826540.png)
+![image-20240824205826540](assets/MessageQueue.assets/image-20240824205826540.png)
 
 插件的使用：
 
