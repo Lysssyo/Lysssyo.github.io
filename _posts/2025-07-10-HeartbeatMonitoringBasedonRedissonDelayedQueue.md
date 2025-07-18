@@ -17,7 +17,7 @@ sequenceDiagram
 
     %%--- 参与者 ---
     participant Upstream as 上游业务 / Producer
-    participant MQ as charging.status.topic
+    participant MQ
     participant HBHandler as HeartbeatHandler<br/>(Redisson 客户端)
     participant RDelay as RDelayedQueue<br/>hb:compensate
     participant HBWatcher as HeartbeatWatcher<br/>(take 线程)
@@ -56,11 +56,10 @@ public class HeartbeatHandler {
     }
 
     /** RabbitMQ 监听心跳事件 */
-    @RabbitListener(queues = "${mq.heartbeat.queue}")      // charging.status.topic 绑定的队列
+    @RabbitListener(queues = "${mq.heartbeat.queue}")      // MQ 绑定的队列
     public void onHeartbeat(ChargingStatusEvent evt) {
         String orderId = evt.getOrderId();
-        // 1. 业务侧可在此更新计费/功率等（省略）
-        // 2. 续期：先删再加，保证队列里只留最新一次
+        // 可以补充其他业务处理
         RDelayedQueue<String> dq = dq();
         dq.remove(orderId);
         dq.offer(orderId, 90, TimeUnit.SECONDS);          // 90 s 无新心跳则触发补偿
@@ -78,8 +77,6 @@ public class HeartbeatWatcher {
     private static final String HB_QUEUE = "hb:compensate";
 
     private final RedissonClient redisson;
-    private final AccessService  accessService;           // 设备接入服务
-    private final WebSocketPusher wsPusher;               // 推实时状态给前端
 
     @PostConstruct
     public void start() {
