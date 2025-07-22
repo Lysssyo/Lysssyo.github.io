@@ -38,14 +38,21 @@ tags: []
    - 查询 `charging:pending:{userId}`：如果存在离线期间的状态更新，则立即推送给前端，并删除该缓存，确保消息不重复。
 
 ```java
+private static final Map<String, WebSocketSession> sessionMap = new ConcurrentHashMap<>();
+
 @Override
 public void afterConnectionEstablished(WebSocketSession session) throws Exception {
     String userId = extractUserId(session);
+    sessionMap.put(userId, session);
     // 保存映射
     redisTemplate.opsForValue()
         .set("user:session:" + userId,
              JSON.toJSONString(Map.of("sessionId", session.getId(), "nodeId", nodeId)),
              300, TimeUnit.SECONDS);
+    
+    // 新建连立即写入最后心跳时间
+        session.getAttributes().put("lastBeat", System.currentTimeMillis()); // 这个用于超时会话的踢出
+    
     // 补偿离线消息
     String pending = redisTemplate.opsForValue().get("charging:pending:" + userId);
     if (pending != null) {
@@ -132,18 +139,75 @@ public void onMessage(Message message, byte[] pattern) {
 - 如若长时间未收到心跳，Redis 键过期，将被视为离线，后续消息会进入离线缓存逻辑。
 
 ```java
-@Override
-protected void handleTextMessage(WebSocketSession session, TextMessage msg) {
-    if (msg.getPayload().contains("\"type\":\"heartbeat\"")) {
-        String userId = extractUserId(session);
-        redisTemplate.expire("user:session:" + userId, 300, TimeUnit.SECONDS);
-        return;
+	private static final Map<String, WebSocketSession> sessionMap = new ConcurrentHashMap<>();
+	@Override
+    public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        String payload = message.getPayload();
+
+        // —— 应用层心跳 ——
+        // 前端定期发 {"type":"heartbeat"}
+        if (payload.contains("\"type\":\"heartbeat\"")) {
+            String userId = extractUserId(session);
+            // **★ 更新最后心跳时间**
+            session.getAttributes().put("lastBeat", System.currentTimeMillis());
+            // 刷新 Redis 中这条会话映射的过期时间
+            redisTemplate.expire(
+                    "user:session:" + userId,
+                    SESSION_TTL_SECONDS,
+                    TimeUnit.SECONDS
+            );
+            log.debug("Heartbeat received from {}, TTL extended", userId);
+            return;  // 心跳不往下传递
+        }
+
+        // —— 其它消息继续走原有逻辑 ——
+        super.handleTextMessage(session, message);
     }
-    super.handleTextMessage(session, msg);
+```
+
+### 2.5 空闲节点回收
+
+对于心跳断了的WebSocket连接，除了要做离线补偿，还应该把离线会话清除。
+
+在WebSocket连接建立的时候，就在session的attributes中写入了最后心跳时间，并且，在心跳续期的时候，同样在session的attributes中写入了最后心跳时间。那么，需要创建一个定时任务，扫描 sessionMap中最后心跳时间大于MAX_IDLE_MILLIS （允许的最大静默时长）中的session，并调用close关闭连接（默认的MAX_IDLE_MILLIS 为发心跳间隔 * 2）
+
+```java
+@Component
+public class WsIdleKicker {
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    /** 与 Handler 里的 map 共享同一个实例 */
+    private final Map<String, WebSocketSession> sessionMap =
+            ChargingWebSocketHandler.getSessionMap();   // 给 Handler 加个 public static getter
+
+    @Scheduled(fixedDelay = 30_000)   // 每 30 s 扫描一次
+    public void kickIdleSessions() {
+        long now = System.currentTimeMillis();
+
+        // 用迭代器可边遍历边安全删除
+        Iterator<Map.Entry<String, WebSocketSession>> it = sessionMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, WebSocketSession> e = it.next();
+            WebSocketSession session = e.getValue();
+
+            Long lastBeat = (Long) session.getAttributes().get("lastBeat");
+            if (lastBeat == null || now - lastBeat > ChargingWebSocketHandler.MAX_IDLE_MILLIS) {
+                try {
+                    session.close(CloseStatus.GOING_AWAY);   // 1001，客户端会触发 onClose
+                } catch (IOException ignored) { }
+                it.remove();                                // 从本地 map 清掉
+                redisTemplate.delete("user:session:" + e.getKey()); // 立即让业务端识别为离线
+            }
+        }
+    }
 }
 ```
 
-### 2.5 水平扩展
+
+
+### 2.6 水平扩展
 
 - 每个WebSocket服务实例在配置中设置不同 `ws.server.id` 作为 `nodeId`。
 - 仅订阅 `ws-node-{nodeId}` 频道，消息定向到目标实例。
