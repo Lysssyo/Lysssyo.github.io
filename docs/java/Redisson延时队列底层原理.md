@@ -7,8 +7,8 @@ public static void main(String[] args) throws InterruptedException, UnsupportedE
     Config config = new Config();
     config.useSingleServer().setAddress("redis://172.29.2.10:7000");
     RedissonClient redisson = Redisson.create(config);
-    RBlockingQueueString blockingQueue = redisson.getBlockingQueue("dest_queue1"); // 这个名字等下用作channel，zset等的名字
-    RDelayedQueueString delayedQueue = redisson.getDelayedQueue(blockingQueue);
+    RBlockingQueue<String> blockingQueue = redisson.getBlockingQueue("dest_queue1"); // 这个名字等下用作channel，zset等的名字
+    RDelayedQueue<String> delayedQueue = redisson.getDelayedQueue(blockingQueue);
     new Thread() {
         public void run() {
             while(true) {
@@ -99,15 +99,15 @@ public static void main(String[] args) throws InterruptedException, UnsupportedE
 
 对你每一次 `offer`，Redis 侧出现以下模式：
 
-1. **ZADD redisson_delay_queue_timeout:{dest_queue1} <到期时间戳> <编码消息>**
+1. ``ZADD redisson_delay_queue_timeout:{dest_queue1} <到期时间戳> <编码消息>``
 
     - 把消息按“到期时间”记入有序集合（延迟计划表）。
 
-2. **RPUSH redisson_delay_queue:{dest_queue1} <同样的编码消息>**
+2. ``RPUSH redisson_delay_queue:{dest_queue1} <同样的编码消息>``
 
     - 存一份备份 List，后面搬运成功后要 LREM 删除它，防重复。
 
-3. **ZRANGE ... 0 0**（取最早到期项）
+3. ``ZRANGE ... 0 0（取最早到期项）``
 
     - 看看刚加进去是不是新的“最早到期时间”。
 
@@ -120,7 +120,7 @@ public static void main(String[] args) throws InterruptedException, UnsupportedE
     > - **start** 和 **stop**：按索引区间指定要返回的成员位置（0 表示第一个元素，1 表示第二个，以此类推；-1 表示最后一个，-2 表示倒数第二个）。
     > - **WITHSCORES**（可选）：如果加上这个标志，返回结果会把每个成员对应的 score 一并返回。
 
-4. **PUBLISH redisson_delay_queue_channel:{dest_queue1} <最早到期时间戳>**
+4. ``PUBLISH redisson_delay_queue_channel:{dest_queue1} <最早到期时间戳>``
 
     - 通知所有订阅客户端：“下一个到期点是多少”，大家据此安排本地定时器（HashedWheelTimer 等）。
 
@@ -182,9 +182,9 @@ public static void main(String[] args) throws InterruptedException, UnsupportedE
 
 2. 对这些到期消息执行：
 
-    - **RPUSH dest_queue1 <payload>** → 真正投递到你消费者用的阻塞队列。
-    - **LREM redisson_delay_queue:{dest_queue1} 1 <编码消息>** → 从备份 List 删除。
-    - **ZREM redisson_delay_queue_timeout:{dest_queue1} <编码消息...>** → 从延迟计划表删除。
+    - **``RPUSH dest_queue1 <payload>``** → 真正投递到你消费者用的阻塞队列。
+    - **``LREM redisson_delay_queue:{dest_queue1} 1 <编码消息>``** → 从备份 List 删除。
+    - **``ZREM redisson_delay_queue_timeout:{dest_queue1} <编码消息...>``** → 从延迟计划表删除。
 
 3. **ZRANGE ... 0 0 WITHSCORES**
 
