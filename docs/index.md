@@ -3,12 +3,12 @@ layout: home
 
 hero:
   name: "Keith's Hub"
-  text: "构建数字花园"
-  tagline: 记录 · 思考 · 沉淀 | Java & Full Stack
+  
+  tagline: As the stack grows
   actions:
     - theme: brand
       text: 🚀 探索知识库
-      link: /markdown-examples
+      link: /intro
     - theme: alt
       text: ☕ 关于作者
       link: /

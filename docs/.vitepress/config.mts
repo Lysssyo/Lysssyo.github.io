@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 import { generateSidebar } from 'vitepress-sidebar'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import container from 'markdown-it-container'
+import { gitHubAlertsPlugin } from 'markdown-it-github-alerts'
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid(defineConfig({
@@ -12,7 +13,7 @@ export default withMermaid(defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Examples', link: '/markdown-examples' }
+      { text: '知识库', link: '/intro' }
     ],
 
     sidebar: generateSidebar({
@@ -33,6 +34,7 @@ export default withMermaid(defineConfig({
   },
   markdown: {
     config: (md) => {
+      md.use(gitHubAlertsPlugin)
       md.use(container, 'callout', {
         validate: (params) => params.trim().match(/^callout\s+(.*)$/),
         render: (tokens, idx) => {
