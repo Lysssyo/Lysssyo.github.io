@@ -5,9 +5,6 @@ hero:
   name: "Keith's Hub"
   text: "构建数字花园"
   tagline: 记录 · 思考 · 沉淀 | Java & Full Stack
-  image:
-    src: /logo.svg
-    alt: Keith's Logo
   actions:
     - theme: brand
       text: 🚀 探索知识库
