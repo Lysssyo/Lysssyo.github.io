@@ -15,91 +15,97 @@
 ## Code
 
 - 封装Fact
-    
-    public class RepaymentFacts {  
-        private double remainingPrincipal;  
-        private LocalDate entryDate;  
-        private List<RepaymentPlan> repaymentLists; // 还款计划  
-    ​  
-        // 构造函数 & Getter & Setter  
-    }
-    
-- 规则一：利息期提前还本金
-    
-    @Rule(name = "Interest Period Principal Repayment")  
-    public class InterestPeriodRule {  
-    ​  
-        @Condition  
-        public boolean when(@Fact("facts") RepaymentFacts facts) {  
-            return isInInterestPeriod(facts.getEntryDate()) && facts.getRemainingAmount() > 0;  
-        }  
-    ​  
-        @Action  
-        public void then(@Fact("facts") RepaymentFacts facts) {  
-            // 执行利息期提前还本金的更新还款计划的逻辑  
-        }  
-    ​  
-        private boolean isInInterestPeriod(LocalDate date) {  
-            LocalDate start = LocalDate.of(2025, 4, 1);  
-            LocalDate end = LocalDate.of(2025, 4, 15);  
-            return !date.isBefore(start) && !date.isAfter(end);  
-        }  
-    }
-    
-- 规则二：本金逾期还款
-    
-    @Rule(name = "Overdue Principal Repayment")  
-    public class OverduePrincipalRule {  
-    ​  
-        @Condition  
-        public boolean when(@Fact("facts") RepaymentFacts facts) {  
-            return isInPrincipalPeriod(facts.getEntryDate())  
-                    && facts.getTotalCharges() > facts.getRemainingAmount();  
-        }  
-    ​  
-        @Action  
-        public void then(@Fact("facts") RepaymentFacts facts) {  
-            // 执行利息期提前还本金的更新还款计划的逻辑  
-        }  
-    ​  
-        private boolean isInPrincipalPeriod(LocalDate date) {  
-            LocalDate start = LocalDate.of(2025, 4, 16);  
-            LocalDate end = LocalDate.of(2025, 4, 30);  
-            return !date.isBefore(start) && !date.isAfter(end);  
-        }  
-    }
-    
-- 规则三：本金期正常还款
-    
-- 运行规则引擎
-    
-    public class RepaymentRuleEngine {  
-    ​  
-        public static void main(String[] args) {  
-            // 假设数据  
-            RepaymentFacts repaymentFacts = new RepaymentFacts(  
-                   // 省略构造  
-            );  
-    ​  
-            Facts facts = new Facts();  
-            facts.put("facts", repaymentFacts);  
-    ​  
-            Rules rules = new Rules();  
-            rules.register(new InterestPeriodRule());  
-            rules.register(new OverduePrincipalRule());  
-            rules.register(new NormalPrincipalRule());  
-    ​  
-            RulesEngineParameters parameters = new RulesEngineParameters()  
-                    .skipOnFirstAppliedRule(false); // 保证所有规则都尝试执行  
-            // 因为规则之间并不互斥，例如逾期还钱，可能一起还很多钱，那么走逾期的规则把逾期的钱还完还能走正常还钱的规则  
-    ​  
-            RulesEngine rulesEngine = new DefaultRulesEngine(parameters);  
-            rulesEngine.fire(rules, facts);  
-              
-            repaymentPlanRepository.update(repaymentFacts.getPlans); // 操作完成后入库  
-        }  
-    }
 
+    ```java
+    public class RepaymentFacts {
+        private double remainingPrincipal;
+        private LocalDate entryDate;
+        private List<RepaymentPlan> repaymentLists; // 还款计划
+    
+        // 构造函数 & Getter & Setter
+    }
+    ```
+
+- 规则一：利息期提前还本金
+
+    ```java
+    @Rule(name = "Interest Period Principal Repayment")
+    public class InterestPeriodRule {
+    
+        @Condition
+        public boolean when(@Fact("facts") RepaymentFacts facts) {
+            return isInInterestPeriod(facts.getEntryDate()) && facts.getRemainingAmount() > 0;
+        }
+    
+        @Action
+        public void then(@Fact("facts") RepaymentFacts facts) {
+            // 执行利息期提前还本金的更新还款计划的逻辑
+        }
+    
+        private boolean isInInterestPeriod(LocalDate date) {
+            LocalDate start = LocalDate.of(2025, 4, 1);
+            LocalDate end = LocalDate.of(2025, 4, 15);
+            return !date.isBefore(start) && !date.isAfter(end);
+        }
+    }
+    ```
+
+- 规则二：本金逾期还款
+
+    ```java
+    @Rule(name = "Overdue Principal Repayment")
+    public class OverduePrincipalRule {
+    
+        @Condition
+        public boolean when(@Fact("facts") RepaymentFacts facts) {
+            return isInPrincipalPeriod(facts.getEntryDate())
+                    && facts.getTotalCharges() > facts.getRemainingAmount();
+        }
+    
+        @Action
+        public void then(@Fact("facts") RepaymentFacts facts) {
+            // 执行利息期提前还本金的更新还款计划的逻辑
+        }
+    
+        private boolean isInPrincipalPeriod(LocalDate date) {
+            LocalDate start = LocalDate.of(2025, 4, 16);
+            LocalDate end = LocalDate.of(2025, 4, 30);
+            return !date.isBefore(start) && !date.isAfter(end);
+        }
+    }
+    ```
+
+- 规则三：本金期正常还款
+
+- 运行规则引擎
+
+    ```java
+    public class RepaymentRuleEngine {
+    
+        public static void main(String[] args) {
+            // 假设数据
+            RepaymentFacts repaymentFacts = new RepaymentFacts(
+                   // 省略构造
+            );
+    
+            Facts facts = new Facts();
+            facts.put("facts", repaymentFacts);
+    
+            Rules rules = new Rules();
+            rules.register(new InterestPeriodRule());
+            rules.register(new OverduePrincipalRule());
+            rules.register(new NormalPrincipalRule());
+    
+            RulesEngineParameters parameters = new RulesEngineParameters()
+                    .skipOnFirstAppliedRule(false); // 保证所有规则都尝试执行
+            // 因为规则之间并不互斥，例如逾期还钱，可能一起还很多钱，那么走逾期的规则把逾期的钱还完还能走正常还钱的规则
+    
+            RulesEngine rulesEngine = new DefaultRulesEngine(parameters);
+            rulesEngine.fire(rules, facts);
+            
+            repaymentPlanRepository.update(repaymentFacts.getPlans); // 操作完成后入库
+        }
+    }
+    ```
 
 ![image.png](https://keith-knowledge-base.oss-cn-hongkong.aliyuncs.com/20260112194011685.png)
-

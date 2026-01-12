@@ -1,101 +1,166 @@
 ## 1. 业务背景
 
-上游平台每 15 秒向本平台推送计费中的订单状态信息。为了确保系统的可靠性，我们不仅依赖推模式，还需要引入拉模式，以防推送丢失或延迟。拉模式可以通过 Redisson特性来识别哪些订单长时间没有接收到状态推送。
+上游平台推送的“桩状态”和“订单状态”消息，由于是异步消息推送，所以无法保证推送到本平台的消息顺序。
 
-``` mermaid
-sequenceDiagram
+比如：在订单结束时，上游会推送 “订单结束（`status=4`）” 和 “订单计费结束（`status=5`）” 两条状态消息。
 
-    %%--- 参与者 ---
-    participant Upstream as 上游业务 / Producer
-    participant MQ
-    participant HBHandler as HeartbeatHandler<br/>(Redisson 客户端)
-    participant RDelay as RDelayedQueue<br/>hb:compensate
-    participant HBWatcher as HeartbeatWatcher<br/>(take 线程)
-    participant Access as 设备接入服务
+- 正常顺序：先推状态 4，再推状态 5。
+- 乱序情况：可能因为网络原因，先收到状态 5，再收到状态 4。
 
-    %%--- 1. 上游推送心跳 ---
-    Upstream ->> MQ: ChargingStatusEvent
+如果直接处理，订单状态可能会先变成 5，然后又被回退成 4，导致数据不一致。
 
-    %%--- 2. 消费者续期 ---
-    MQ ->> HBHandler: 消息
-    HBHandler ->> RDelay: remove(orderId)<br/>offer(orderId, 90 s)
+**为了保证最终状态一致性，我们希望实现：**
 
-    %%--- 3. 心跳超时触发补偿 ---
-    RDelay -->> HBWatcher: orderId (到期搬迁后 take)
-    HBWatcher ->> Access: fetchOrderStatus(orderId)
+如果先收到了 `status=5`，那么之后再收到的 `status=4` 应该是无效的（即状态只能单向流转：`...->4->5`）。
 
+**解决方案：**
 
-```
+使用 **Redisson 延迟队列**。当收到消息时，不立即处理，而是先放入延迟队列“缓冲”一段时间（比如 5 秒）。在 5 秒内，如果收到了多条关于同一个订单的消息，我们可以利用 Redis 缓存来辅助判断，只保留“最新/最终”的状态，或者在消费时进行校验。
+
+其实，更简单的逻辑是：
+
+1. 收到消息，先不处理，扔进延迟队列（delay = 5s）。
+2. 5 秒后，消息出队，准备处理。
+3. 处理前，查一下数据库（或 Redis 缓存）里该订单的当前状态。
+4. 如果 **消息状态 > 当前状态**，则更新；否则丢弃。
+
+但这里我们主要讨论 **Redisson 延迟队列的实现与心跳监测机制的结合**（或者说是利用延迟队列做超时监测，类似于上篇提到的 TTL 机制，但更灵活）。
+
+这里提到的“心跳监测”场景可能是：
+
+- 上游承诺每 15 秒推一次状态。
+- 如果 90 秒没收到推送，我们认为上游断联或订单异常，需要主动查询。
+
+利用 Redisson 延迟队列实现：
+
+1. 收到推送，处理业务。
+2. 同时，往延迟队列 `offer` 一个“检查任务”，延迟 90 秒。
+3. 90 秒后，消费者收到这个“检查任务”。
+4. 消费者检查：最近 90 秒内有没有收到过新的推送？
+    - 如果收到了（有更新），忽略这个检查任务。
+    - 如果没收到，说明超时了，触发主动查询。
 
 ## 2. 实现
 
-**HeartbeatHandler — RabbitMQ 消费 & 续期**
+### 2.1 依赖
 
-@Component  
-@RequiredArgsConstructor  
-public class HeartbeatHandler {  
-​  
-    private static final String HB_QUEUE = "hb:compensate";      // 统一队列名  
-    private final RedissonClient redisson;  
-​  
-    private RDelayedQueue<String> dq() {  
-        RBlockingQueue<String> bq = redisson.getBlockingQueue(HB_QUEUE);  
-        return redisson.getDelayedQueue(bq);  
-    }  
-​  
-    /** RabbitMQ 监听心跳事件 */  
-    @RabbitListener(queues = "${mq.heartbeat.queue}")      // MQ 绑定的队列  
-    public void onHeartbeat(ChargingStatusEvent evt) {  
-        String orderId = evt.getOrderId();  
-        // 可以补充其他业务处理  
-        RDelayedQueue<String> dq = dq();  
-        dq.remove(orderId);  
-        dq.offer(orderId, 90, TimeUnit.SECONDS);          // 90 s 无新心跳则触发补偿  
-    }  
+```xml
+<dependency>
+    <groupId>org.redisson</groupId>
+    <artifactId>redisson-spring-boot-starter</artifactId>
+    <version>3.17.0</version>
+</dependency>
+```
+
+### 2.2 核心代码
+
+**1. 定义队列**
+
+```java
+@Configuration
+public class RedissonQueueConfig {
+
+    @Bean
+    public RBlockingQueue<String> blockingQueue(RedissonClient redissonClient) {
+        // 目标阻塞队列
+        return redissonClient.getBlockingQueue("order_timeout_check_queue");
+    }
+
+    @Bean
+    public RDelayedQueue<String> delayedQueue(RBlockingQueue<String> blockingQueue, RedissonClient redissonClient) {
+        // 绑定延迟队列
+        return redissonClient.getDelayedQueue(blockingQueue);
+    }
 }
+```
 
-**HeartbeatWatcher — 到期补偿线程**
+**2. 生产者（收到推送时）**
 
-@Component  
-@RequiredArgsConstructor  
-public class HeartbeatWatcher {  
-​  
-    private static final String HB_QUEUE = "hb:compensate";  
-​  
-    private final RedissonClient redisson;  
-​  
-    @PostConstruct  
-    public void start() {  
-        Executors.newSingleThreadExecutor().submit(this::loop);  
-    }  
-​  
-    /** 阻塞式 take —— 到期任务唯一消费 */  
-    private void loop() {  
-        RBlockingQueue<String> bq = redisson.getBlockingQueue(HB_QUEUE);  
-        for (;;) {  
-            try {  
-                String orderId = bq.take();               // 原子获取到期订单  
-                // 做后续业务处理  
-            } catch (InterruptedException ie) {  
-                Thread.currentThread().interrupt();  
-                break;  
-            } catch (Exception ex) {  
-                // 日志 + 重试策略  
-            }  
-        }  
-    }  
+```java
+@Service
+public class OrderStatusListener {
+
+    @Autowired
+    private RDelayedQueue<String> delayedQueue;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    public void onMessage(String orderId) {
+        // 1. 处理业务逻辑（省略）
+        System.out.println("收到订单推送: " + orderId);
+
+        // 2. 记录最后一次收到推送的时间
+        redisTemplate.opsForValue().set("last_push_time:" + orderId, String.valueOf(System.currentTimeMillis()));
+
+        // 3. 添加一个 90 秒后的检查任务
+        // 注意：这里为了简单，直接发 orderId。实际可能需要发一个对象包含时间戳，防止ABA问题
+        delayedQueue.offer(orderId, 90, TimeUnit.SECONDS);
+    }
 }
+```
+
+**3. 消费者（处理延迟任务）**
+
+```java
+@Component
+public class TimeoutCheckConsumer implements CommandLineRunner {
+
+    @Autowired
+    private RBlockingQueue<String> blockingQueue;
+
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
+    @Override
+    public void run(String... args) throws Exception {
+        new Thread(() -> {
+            while (true) {
+                try {
+                    // 阻塞获取到期的任务
+                    String orderId = blockingQueue.take();
+                    checkTimeout(orderId);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
+    private void checkTimeout(String orderId) {
+        // 获取最后一次推送时间
+        String lastTimeStr = redisTemplate.opsForValue().get("last_push_time:" + orderId);
+        if (lastTimeStr == null) {
+            // 可能是订单已结束，缓存被清除了
+            return;
+        }
+
+        long lastTime = Long.parseLong(lastTimeStr);
+        long now = System.currentTimeMillis();
+
+        // 如果 (当前时间 - 最后推送时间) >= 90秒 (允许一点误差)
+        // 说明这 90 秒内没有新的推送更新 last_push_time
+        if (now - lastTime >= 90 * 1000 - 1000) {
+            System.out.println("订单 " + orderId + " 超时未推送，发起主动查询...");
+            // TODO: 调用主动查询接口
+        } else {
+            System.out.println("订单 " + orderId + " 在检查期间有新推送，忽略本次检查");
+        }
+    }
+}
+```
 
 ## 3. 与其他方案对比
 
-|维度|**Redisson RDelayedQueue**（ZSet + BlockingQueue）|**Redis TTL + KeyspaceEvent**|**写任务表 / 轮询**（MySQL 或 PostgreSQL）|
-|---|---|---|---|
-|**触发机制**|_拉模型_——Redisson 内部每 1 s 扫描 bucket ZSet，将到期元素原子搬到 BlockingQueue，业务线程 `take()`|_推模型_——Key 到期时 Redis 主动 `PUBLISH __keyevent..:expired` 消息|_拉模型_——应用定时查询 `task_table WHERE next_time <= now()`|
-|**实时性**|秒级（搬迁周期可调；500 ms–1 s 常用）|受 `hz` 与采样影响，典型 0.2–1 s；极端低密度时可达 10+ s|取决于轮询间隔（通常 ≥1 s，长则分钟级）|
-|**可靠性**|At-Least-Once：元素留在 ZSet/List，实例宕机重启后仍可消费|Pub/Sub 无持久化；主从切换或客户端断线会丢事件，需要额外补偿逻辑|数据持久化在 DB；实例重启不会丢，但需处理锁与并发|
-|**并发 & 去重**|`take()` 天然互斥，多实例不会重复；`remove+offer` 保证队列单元素|单实例订阅安全；多实例需自己幂等；事件风暴可压垮缓冲区|依赖 `UPDATE … WHERE status='NEW' LIMIT N` + 行锁；高并发易产生锁竞争|
-|**代码复杂度**|业务只写 `offer` / `take`，逻辑清晰；Redisson 封装搬迁与阻塞|极简，但须配置通知 + 写补偿 + 调参 hz/effort + 处理丢事件|要建表、写 DAO、处理悲观/乐观锁、分片或分库|
-|**Redis/DB 负荷**|仅“断链订单”写一次；搬迁批量 Lua 执行，命令数低|所有心跳刷新 TTL，写放大高；发送每条过期事件|DB 持续轮询；高 QPS 时 IO & 锁开销大|
-|**扩展性**|Redis Cluster 支持；多实例水平扩容|多分片需对每个主节点订阅；事件易碎|DB table 热点可能成为瓶颈；需分片或迁移到 NoSQL|
-|**运维关注点**|监控 queue size、Lua 执行时长；Redis OOM 前清理 bucket|监控 Pub/Sub 连接、event 丢失率；调优 active-expire|监控锁等待、慢查询；定期清理历史任务|
-|**典型适用**|高实时性 + 高可靠性（<10 s 发现、万级 key）|实时性要求中等且 key 密度高；业务能容忍偶发漏事件|任务量小或需事务一致性（支付重算等）|
+| 方案 | 优点 | 缺点 |
+| --- | --- | --- |
+| **Redis TTL (Key失效监听)** | 实现极其简单，利用 Redis 原生机制 | 1. **不可靠**：Redis 不保证立即触发过期事件，可能有延迟。<br>2. **不持久化**：发布订阅模式在 Redis 宕机期间会丢消息。<br>3. **广播风暴**：集群环境下所有实例都会收到过期通知。 |
+| **Redis ZSet (手动轮询)** | 可靠性高，支持持久化，逻辑可控 | 需要自己写轮询线程（`zrangeByScore`），对 Redis 有持续的轮询压力。 |
+| **RabbitMQ 延迟插件** | 消息中间件级别的可靠性，吞吐量高 | 需要安装插件，增加了运维成本。 |
+| **Redisson 延迟队列** | **结合了 ZSet 的可靠性和 阻塞队列 的易用性**。<br>无需自己写轮询算法，API 友好。 | 依赖 Redisson 客户端，底层还是基于 Redis ZSet，大量延迟任务可能存在性能瓶颈（Lua 脚本执行）。 |
+
+**结论：**
+
+- 如果你的系统已经引入了 Redisson，且延迟任务量级在**中等规模**（万级/十万级），Redisson 延迟队列是一个非常优雅且开发成本低的方案。
+- 相比 TTL 监听，它**可靠且支持持久化**。
+- 相比手写 ZSet 轮询，它**封装好了复杂的细节**（时间轮、分发）。
