@@ -7,8 +7,8 @@ public static void main(String[] args) throws InterruptedException, UnsupportedE
     Config config = new Config();
     config.useSingleServer().setAddress("redis://172.29.2.10:7000");
     RedissonClient redisson = Redisson.create(config);
-    RBlockingQueue<String> blockingQueue = redisson.getBlockingQueue("dest_queue1"); // 这个名字等下用作channel，zset等的名字
-    RDelayedQueue<String> delayedQueue = redisson.getDelayedQueue(blockingQueue);
+    RBlockingQueueString blockingQueue = redisson.getBlockingQueue("dest_queue1"); // 这个名字等下用作channel，zset等的名字
+    RDelayedQueueString delayedQueue = redisson.getDelayedQueue(blockingQueue);
     new Thread() {
         public void run() {
             while(true) {
