@@ -71,7 +71,7 @@
 2. 定时任务（例如每分钟）扫描任务表，查找 last_pull_time 距离当前时间超过 90 秒的订单：
 
     ```sql
-    SELECT order_id FROM task_table WHERE status = 'CHARGING' AND last_pull_time < NOW() - INTERVAL 90 SECOND;
+    SELECT order_id FROM task_table WHERE status = 'CHARGING' AND last_pull_time&lt;NOW() - INTERVAL 90 SECOND;
     ```
 
 3. 对筛选出的订单触发拉取状态，更新任务表
@@ -154,7 +154,7 @@ TTL 更适合：
     > SCAN 0 MATCH user:heartbeat:* COUNT 1000
     > ```
     >
-    > TTL user:heartbeat:{userId} < 某阈值，表示即将过期
+    > TTL user:heartbeat:{userId}&lt;某阈值，表示即将过期
     >
     > 这样依然实现了 TTL 拉模式：**你不是等它过期才处理，而是主动拉 TTL 判断是否即将超时**。
 
