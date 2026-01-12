@@ -1,3 +1,5 @@
+# websocket推送链路高可用机制
+
 ## 1. 概述
 
 本服务基于 Spring Boot，整合了 RabbitMQ、Redis 和 WebSocket，提供了 WebSocket 的实时推送和离线补偿功能。核心设计思路如下：

@@ -1,3 +1,5 @@
+# ES初始
+
 ## 1. 简介
 
 [Elasticsearch：官方分布式搜索和分析引擎 | Elastic](https://www.elastic.co/cn/elasticsearch)
