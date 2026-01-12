@@ -8,12 +8,13 @@ hero:
   actions:
     - theme: brand
       text: 🚀 探索知识库
-      link: /intro
+      link: /java/base
 
 features:
   - icon: ☕
     title: Java 核心
     details: 深入 JVM 底层原理、JUC 并发编程实战、Spring 全家桶源码解析与微服务架构设计模式。
+    link: /java/base
   - icon: ⚡
     title: 前端技术
     details: Vue 3 深度实践、VitePress 静态站点搭建、TypeScript 类型体操以及现代前端工程化。

@@ -9,28 +9,59 @@ import path from 'path'
 const hamburgerSvg = fs.readFileSync(path.resolve(__dirname, '../../hamburger.svg'), 'utf-8')
 const hamburgerDataUrl = `data:image/svg+xml;base64,${Buffer.from(hamburgerSvg).toString('base64')}`
 
+// 自动获取侧边栏配置
+const sidebarConfig = generateSidebar({
+  documentRootPath: 'docs',
+  useTitleFromFileHeading: true,
+  collapsed: true,
+  excludeFiles: ['index.md']
+})
+
+// 递归查找侧边栏中的第一个有效链接
+function getFirstLink(sidebar: any): string {
+  const items = Array.isArray(sidebar) ? sidebar : sidebar['/'] || Object.values(sidebar)[0]
+  if (!items || !Array.isArray(items)) return '/'
+  
+  for (const item of items) {
+    if (item.link) return item.link
+    if (item.items) {
+      const link = getFirstLink(item.items)
+      if (link) return link
+    }
+  }
+  return '/'
+}
+
+const firstLink = getFirstLink(sidebarConfig)
+
 // https://vitepress.dev/reference/site-config
 export default withMermaid(defineConfig({
+  lang: 'zh-CN',
   title: "Keith's Knowledge Base",
+  titleTemplate: false,
   description: "As the stack grows",
   head: [
     ['link', { rel: 'icon', href: hamburgerDataUrl }]
   ],
+
+  // 核心魔法：动态修改页面数据
+  transformPageData(pageData) {
+    // 如果是首页，动态改写 hero 的链接
+    if (pageData.relativePath === 'index.md') {
+      pageData.frontmatter.hero.actions[0].link = firstLink
+    }
+  },
+
   themeConfig: {
     siteTitle: 'Keith\'s Knowledge Base',
     logo: hamburgerDataUrl,
-    // https://vitepress.dev/reference/default-theme-config
+    
     nav: [
       { text: 'Home', link: '/' },
-      { text: '知识库', link: '/intro' }
+      { text: '知识库', link: firstLink }
     ],
 
-    sidebar: generateSidebar({
-      documentRootPath: 'docs', // 你的文档根目录
-      useTitleFromFileHeading: true, // 自动读取 md 文件里的 H1 作为标题
-      collapsed: true, // 所有文件夹默认折叠
-      // 更多配置...
-    }),
+    sidebar: sidebarConfig,
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
@@ -38,11 +69,24 @@ export default withMermaid(defineConfig({
 
     search: {
       provider: 'local'
+    },
+
+    lastUpdated: {
+      text: '最后更新于',
+      formatOptions: {
+        dateStyle: 'full',
+        timeStyle: 'medium'
+      }
+    },
+
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2024-present Keith'
     }
 
   },
   markdown: {
-    config: (md) => {  
+    config: (md) => {
       md.use(container, 'callout', {
         validate: (params) => params.trim().match(/^callout\s+(.*)$/),
         render: (tokens, idx) => {
@@ -50,7 +94,8 @@ export default withMermaid(defineConfig({
           if (tokens[idx].nesting === 1) {
             const icon = m && m[1] ? m[1] : '💡';
             return `<div class="callout custom-block"><span class="callout-icon">${icon}</span><div class="callout-content">`;
-          } else {
+          }
+          else {
             return '</div></div>';
           }
         }
