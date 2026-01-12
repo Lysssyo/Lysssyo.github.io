@@ -11,7 +11,7 @@ public Result queryShopById(@PathVariable("id") Long id) {
 
 请求与响应示例：
 
-GET http://localhost:8081/shop/1
+``GET http://localhost:8081/shop/1``
 
 响应：
 
