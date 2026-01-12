@@ -9,9 +9,6 @@ hero:
     - theme: brand
       text: 🚀 探索知识库
       link: /intro
-    - theme: alt
-      text: ☕ 关于作者
-      link: /
 
 features:
   - icon: ☕

@@ -262,6 +262,7 @@ git push -u origin main
 
 ### 阶段一：阿里云 OSS 准备
 [阿里云OSS](https://oss.console.aliyun.com/bucket)
+
 [RAM权限控制](https://ram.console.aliyun.com/overview?activeTab=overview)
 1. 创建 **OSS Bucket** (设置权限为 **公共读**)。
 2. 创建 **RAM 用户**，获取 `AccessKey ID` 和 `Secret`。
