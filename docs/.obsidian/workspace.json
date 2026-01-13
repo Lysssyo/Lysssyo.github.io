@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "7afe6afb89b1ac69",
+        "id": "7d761aa4169213bb",
         "type": "tabs",
         "children": [
           {
-            "id": "63a8f4e2e284234a",
+            "id": "d5d83dabb5ab5429",
             "type": "leaf",
             "state": {
-              "type": "split-diff-view",
+              "type": "markdown",
               "state": {
-                "aFile": "docs/.obsidian/workspace.json",
-                "bFile": "docs/.obsidian/workspace.json",
-                "aRef": ""
+                "file": "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "diff",
-              "title": "Diff: workspace.json  (Working Tree)"
+              "icon": "lucide-file",
+              "title": "010-Coze-Loop-Startup"
             }
           }
         ]
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 343.5
+    "width": 306.5
   },
   "right": {
     "id": "dbbc12f780061b4f",
@@ -94,12 +94,13 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "大纲"
+              "title": "010-Coze-Loop-Startup 的大纲"
             }
           },
           {
@@ -186,8 +187,7 @@
               "title": "010-websocket推送链路高可用机制的笔记属性"
             }
           }
-        ],
-        "currentTab": 4
+        ]
       }
     ],
     "direction": "horizontal",
@@ -206,10 +206,10 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "63a8f4e2e284234a",
+  "active": "d5d83dabb5ab5429",
   "lastOpenFiles": [
-    "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
     "98-Private/密码串.md",
+    "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
     "未命名.base",
     "未命名 1.base",
     "01-场景设计/010-coze-loop专项/070-请求大模型全流程.md",

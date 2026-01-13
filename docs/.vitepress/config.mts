@@ -52,6 +52,14 @@ export default withMermaid(defineConfig({
     }
   },
 
+  ignoreDeadLinks: [
+    // 忽略所有指向 98-Private 的链接检查
+    /98-Private/,
+    
+    // 或者更粗暴一点，忽略所有 localhost 和 相对路径的错误（不推荐）
+    // true, 
+  ],
+
   themeConfig: {
     siteTitle: 'Keith\'s Knowledge Base',
     logo: hamburgerDataUrl,
@@ -78,6 +86,7 @@ export default withMermaid(defineConfig({
         timeStyle: 'medium'
       }
     },
+    
 
     footer: {
       message: 'Released under the MIT License.',
