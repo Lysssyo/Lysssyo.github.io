@@ -1,0 +1,244 @@
+{
+  "main": {
+    "id": "e1e1007d263af0ee",
+    "type": "split",
+    "children": [
+      {
+        "id": "7afe6afb89b1ac69",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "63a8f4e2e284234a",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "新标签页"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "eacd4adb7a407b83",
+    "type": "split",
+    "children": [
+      {
+        "id": "8859cdfe67497146",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d04a1e00f3109c72",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "572ae217a0d59743",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "tag:#加速域名",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "b9e80770e031c1b6",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 343.5
+  },
+  "right": {
+    "id": "dbbc12f780061b4f",
+    "type": "split",
+    "children": [
+      {
+        "id": "cd20db03e3f7ba22",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d0c57ecded74c79f",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "大纲"
+            }
+          },
+          {
+            "id": "e0aae43b73e53354",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Z关联树/Redis相关.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Redis相关 的反向链接列表"
+            }
+          },
+          {
+            "id": "6cb4f5e851066564",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Z关联树/Redis相关.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Redis相关 的出链列表"
+            }
+          },
+          {
+            "id": "1f0a4a5d07227ef2",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "494a9695631ff1b6",
+            "type": "leaf",
+            "state": {
+              "type": "git-view",
+              "state": {},
+              "icon": "git-pull-request",
+              "title": "Source Control"
+            }
+          },
+          {
+            "id": "078c06b6296149c5",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "0bab0080095bd193",
+            "type": "leaf",
+            "state": {
+              "type": "file-properties",
+              "state": {
+                "file": "01-场景设计/010-websocket推送链路高可用机制.md"
+              },
+              "icon": "lucide-info",
+              "title": "010-websocket推送链路高可用机制的笔记属性"
+            }
+          }
+        ],
+        "currentTab": 4
+      }
+    ],
+    "direction": "horizontal",
+    "width": 266.5
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "bases:新建数据库": false,
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "obsidian-git:Open Git source control": false,
+      "terminal:Open terminal": false
+    }
+  },
+  "active": "63a8f4e2e284234a",
+  "lastOpenFiles": [
+    "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
+    "98-Private/密码串.md",
+    "未命名.base",
+    "未命名 1.base",
+    "01-场景设计/010-coze-loop专项/070-请求大模型全流程.md",
+    "01-场景设计/010-coze-loop专项/060-数据集版本控制.md",
+    "01-场景设计/coze-loop专项/业务相关",
+    "01-场景设计/010-coze-loop专项/050-用RowsAffected精确推算Insert数以及批量Upsert主键回填的写后读策略.md",
+    "01-场景设计/010-coze-loop专项/040-语义级分布式读写锁.md",
+    "01-场景设计/010-coze-loop专项/030-写后读保护策略.md",
+    "01-场景设计/010-coze-loop专项/020-Coze-Loop初识.md",
+    "96-杂项/基于 VitePress 构建 GitHub Pages 知识库.md",
+    "01-场景设计/010-websocket推送链路高可用机制.md",
+    "01-场景设计/010-coze-loop专项",
+    "99-关联树/Redis相关.md",
+    "index.md",
+    "05-分布式/010-分布式事务.md",
+    "80-人工智能/010-机器学习.md",
+    "04-数据库/010-MySQL八股补充.md",
+    "03-java/050-Redisson延时队列底层原理.md",
+    "03-java/040-resilience4j.md",
+    "03-java/030-规则引擎easyRules实践.md",
+    "03-java/020-JUC八股补充.md",
+    "03-java/010-集合源码分析.md",
+    "02-中间件/030-ES/010-ES初识.md",
+    "02-中间件/020-Redis/010-Redis缓存.md",
+    "02-中间件/010-消息队列/010-消息队列初识.md",
+    "01-场景设计/040-传统分页以及滚动分页.md",
+    "01-场景设计/030-基于Reidsson延迟队列实现心跳监测.md",
+    "关联树.base",
+    "99-关联树",
+    "02-中间件/030-ES",
+    "98-Private",
+    "02-中间件/010-消息队列",
+    "02-中间件",
+    "public/logo.svg"
+  ]
+}

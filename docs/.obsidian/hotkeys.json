@@ -1,0 +1,19 @@
+{
+  "file-explorer:open": [
+    {
+      "modifiers": [
+        "Alt"
+      ],
+      "key": "1"
+    }
+  ],
+  "terminal:find-in-terminal": [],
+  "terminal:open-terminal.external.root": [
+    {
+      "modifiers": [
+        "Mod"
+      ],
+      "key": "R"
+    }
+  ]
+}

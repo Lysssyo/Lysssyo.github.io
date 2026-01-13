@@ -1,0 +1,4 @@
+/* 隐藏编辑模式(Live Preview)下，列表缩进产生的竖线 */
+.markdown-source-view.mod-cm6 .cm-indent-mark {
+  display: none !important;
+}

@@ -1,0 +1,19 @@
+/* ==========================================
+   1. 阅读模式 (Reading Mode / Preview)
+   强制代码块不换行，超出部分显示滚动条
+   ========================================== */
+.markdown-preview-view pre code {
+  white-space: pre !important;
+  overflow-x: auto !important;
+}
+
+/* ==========================================
+   2. 编辑模式 (Live Preview / Source Mode)
+   强制代码块行不换行
+   注意：这可能会让光标移动变得稍微奇怪，视主题而定
+   ========================================== */
+.cm-s-obsidian .HyperMD-codeblock,
+.markdown-source-view.mod-cm6 .cm-line.HyperMD-codeblock {
+  white-space: pre !important;
+  padding-right: 20px; /* 稍微留点余地 */
+}
