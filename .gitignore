@@ -19,5 +19,4 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
-# obsidian
-.obsidian/
+docs/98-Private/
