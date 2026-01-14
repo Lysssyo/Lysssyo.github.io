@@ -77,7 +77,7 @@ vite: {
       '/api': {
         // 目标指向阿里云函数
         target: 'https://privatege-proxy-uypbjhvwjb.cn-hangzhou.fcapp.run',
-        changeOrigin: true, // 让阿里云觉得是同源请求
+        changeOrigin: true, // 将 Host 请求头修改为目标 URL，防止后端服务器拒绝处理
         rewrite: (path) => path.replace(/^\/api/, '') // 去掉 /api 前缀
       }
     }
