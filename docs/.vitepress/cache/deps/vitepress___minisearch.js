@@ -1,4 +1,4 @@
-import "./chunk-BUSYA2B4.js";
+import "./chunk-JVWSFFO4.js";
 
 // node_modules/minisearch/dist/es/index.js
 var ENTRIES = "ENTRIES";

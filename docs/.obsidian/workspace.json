@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
-                "mode": "source",
-                "source": false
+                "file": "chat.md",
+                "mode": "preview",
+                "source": true
               },
               "icon": "lucide-file",
-              "title": "010-Coze-Loop-Startup"
+              "title": "chat"
             }
           }
         ]
@@ -94,13 +94,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
+                "file": "chat.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "010-Coze-Loop-Startup 的大纲"
+              "title": "chat 的大纲"
             }
           },
           {
@@ -208,6 +208,16 @@
   },
   "active": "d5d83dabb5ab5429",
   "lastOpenFiles": [
+    "98-Private/文件夹/笔记2.md",
+    "03-java/010-集合源码分析.md",
+    "98-Private/文件夹1/笔记1.md",
+    "98-Private/文件夹",
+    "保险箱.md",
+    "98-Private/文件夹1",
+    "chat.md",
+    "06-golang/010-golang实现责任链.md",
+    "01-场景设计/010-coze-loop专项/000-TODO.md",
+    "06-golang",
     "98-Private/密码串.md",
     "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
     "未命名.base",
@@ -231,18 +241,9 @@
     "03-java/040-resilience4j.md",
     "03-java/030-规则引擎easyRules实践.md",
     "03-java/020-JUC八股补充.md",
-    "03-java/010-集合源码分析.md",
-    "02-中间件/030-ES/010-ES初识.md",
-    "02-中间件/020-Redis/010-Redis缓存.md",
-    "02-中间件/010-消息队列/010-消息队列初识.md",
-    "01-场景设计/040-传统分页以及滚动分页.md",
-    "01-场景设计/030-基于Reidsson延迟队列实现心跳监测.md",
     "关联树.base",
     "99-关联树",
     "02-中间件/030-ES",
-    "98-Private",
-    "02-中间件/010-消息队列",
-    "02-中间件",
     "public/logo.svg"
   ]
 }

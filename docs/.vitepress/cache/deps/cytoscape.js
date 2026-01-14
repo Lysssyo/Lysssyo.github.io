@@ -1,4 +1,4 @@
-import "./chunk-BUSYA2B4.js";
+import "./chunk-JVWSFFO4.js";
 
 // node_modules/cytoscape/dist/cytoscape.esm.mjs
 function _arrayLikeToArray(r, a) {

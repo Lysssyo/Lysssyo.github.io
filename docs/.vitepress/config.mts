@@ -14,7 +14,7 @@ const sidebarConfig = generateSidebar({
   documentRootPath: 'docs',
   useTitleFromFileHeading: true,
   collapsed: true,
-  excludeFiles: ['index.md']
+  excludeByGlobPattern: ['index.md', '.gitignore', '98-Private/**', 'chat.md','保险箱.md']
 })
 
 // 递归查找侧边栏中的第一个有效链接
@@ -52,6 +52,19 @@ export default withMermaid(defineConfig({
     }
   },
 
+  vite: {
+    server: {
+      proxy: {
+        '/api': {
+          target: 'https://privatege-proxy-uypbjhvwjb.cn-hangzhou.fcapp.run',
+          changeOrigin: true,
+          secure: false, // Sometimes needed for self-signed or specific FC certs
+          rewrite: (path) => path.replace(/^\/api/, '')
+        }
+      }
+    }
+  },
+
   ignoreDeadLinks: [
     // 忽略所有指向 98-Private 的链接检查
     /98-Private/,
@@ -66,7 +79,8 @@ export default withMermaid(defineConfig({
     
     nav: [
       { text: 'Home', link: '/' },
-      { text: '知识库', link: firstLink }
+      { text: '知识库', link: firstLink },
+      { text: '私有保险箱', link: '/保险箱' }
     ],
 
     sidebar: sidebarConfig,
