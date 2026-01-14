@@ -6,7 +6,7 @@ import { privateStore, type PrivateFile } from '../store'
 const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
-const API_URL = '/api'
+const API_URL = 'https://privatege-proxy-uypbjhvwjb.cn-hongkong.fcapp.run/'
 
 // Helper: Build Tree from Flat GitHub Paths
 function buildFileTree(flatFiles: any[]): PrivateFile[] {

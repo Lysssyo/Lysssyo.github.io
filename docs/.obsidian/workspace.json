@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "chat.md",
-                "mode": "preview",
+                "file": "96-杂项/建站/响应头字段Content-Disposition.md",
+                "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "chat"
+              "title": "响应头字段Content-Disposition"
             }
           }
         ]
@@ -94,13 +94,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "chat.md",
+                "file": "96-杂项/建站/响应头字段Content-Disposition.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "chat 的大纲"
+              "title": "响应头字段Content-Disposition 的大纲"
             }
           },
           {
@@ -208,18 +208,22 @@
   },
   "active": "d5d83dabb5ab5429",
   "lastOpenFiles": [
+    "96-杂项/建站/SSL证书.md",
+    "96-杂项/建站/跨域.md",
+    "96-杂项/建站",
+    "96-杂项/建站/响应头字段Content-Disposition.md",
+    "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
+    "保险箱.md",
+    "chat.md",
     "98-Private/文件夹/笔记2.md",
     "03-java/010-集合源码分析.md",
     "98-Private/文件夹1/笔记1.md",
     "98-Private/文件夹",
-    "保险箱.md",
     "98-Private/文件夹1",
-    "chat.md",
     "06-golang/010-golang实现责任链.md",
     "01-场景设计/010-coze-loop专项/000-TODO.md",
     "06-golang",
     "98-Private/密码串.md",
-    "01-场景设计/010-coze-loop专项/010-Coze-Loop-Startup.md",
     "未命名.base",
     "未命名 1.base",
     "01-场景设计/010-coze-loop专项/070-请求大模型全流程.md",
@@ -229,7 +233,7 @@
     "01-场景设计/010-coze-loop专项/040-语义级分布式读写锁.md",
     "01-场景设计/010-coze-loop专项/030-写后读保护策略.md",
     "01-场景设计/010-coze-loop专项/020-Coze-Loop初识.md",
-    "96-杂项/基于 VitePress 构建 GitHub Pages 知识库.md",
+    "96-杂项/建站/基于 VitePress 构建 GitHub Pages 知识库.md",
     "01-场景设计/010-websocket推送链路高可用机制.md",
     "01-场景设计/010-coze-loop专项",
     "99-关联树/Redis相关.md",
@@ -238,12 +242,8 @@
     "80-人工智能/010-机器学习.md",
     "04-数据库/010-MySQL八股补充.md",
     "03-java/050-Redisson延时队列底层原理.md",
-    "03-java/040-resilience4j.md",
-    "03-java/030-规则引擎easyRules实践.md",
-    "03-java/020-JUC八股补充.md",
     "关联树.base",
     "99-关联树",
-    "02-中间件/030-ES",
     "public/logo.svg"
   ]
 }

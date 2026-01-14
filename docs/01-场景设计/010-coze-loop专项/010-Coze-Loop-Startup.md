@@ -255,9 +255,8 @@ docker logs coze-loop-rmq-init
 powershell设置代理，登录gemini
 
 ```
-$env:http_proxy="<http://127.0.0.1:33210>"
-$env:https_proxy="<http://127.0.0.1:33210>"
-$env:all_proxy="socks5://127.0.0.1:33211"
+$env:http_proxy="http://127.0.0.1:33210"
+$env:https_proxy="http://127.0.0.1:33210"
 ```
 
 > 验证是否成功： 输入 $env:http_proxy 查看
