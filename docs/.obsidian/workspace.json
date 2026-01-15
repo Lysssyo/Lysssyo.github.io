@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "index.md",
+                "file": "98-Private/文件夹1/文件夹3/笔记66.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "index"
+              "title": "笔记66"
             }
           }
         ],
@@ -109,13 +109,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "index.md",
+                "file": "98-Private/文件夹1/文件夹3/笔记66.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "index 的大纲"
+              "title": "笔记66 的大纲"
             }
           },
           {
@@ -221,10 +221,12 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "d04a1e00f3109c72",
+  "active": "3aa707ca82afce23",
   "lastOpenFiles": [
-    "99-关联树/未命名.md",
     "index.md",
+    "98-Private/文件夹1/文件夹3/笔记66.md",
+    "98-Private/文件夹1/文件夹3",
+    "99-关联树/未命名.md",
     "99-关联树/未命名",
     "未命名",
     "chat.md",
@@ -256,10 +258,8 @@
     "96-杂项/010-建站/020-SSL证书.md",
     "96-杂项/010-建站/010-DNS解析.md",
     "96-杂项/建站/未命名",
-    "96-杂项/010-建站",
     "03-java/010-集合源码分析.md",
     "98-Private/文件夹1/笔记1.md",
-    "06-golang/010-golang实现责任链.md",
     "public/logo.svg"
   ]
 }

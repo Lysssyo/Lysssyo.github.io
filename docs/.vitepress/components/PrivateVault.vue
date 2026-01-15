@@ -437,6 +437,10 @@ const renderedContent = computed(() => {
     left: 0;
     width: 100vw;
     border-left: none;
+    
+    /* Use VitePress CSS variable for mobile local nav height */
+    top: calc(var(--vp-nav-height) + var(--vp-local-nav-height, 0px));
+    height: calc(100vh - var(--vp-nav-height) - var(--vp-local-nav-height, 0px));
   }
 }
 
