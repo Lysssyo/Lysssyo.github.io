@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "01-场景设计/010-cozeLoop专项/000-TODO.md",
+                "file": "98-Private/密码串.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "000-TODO"
+              "title": "密码串"
             }
           }
         ],
@@ -109,13 +109,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "01-场景设计/010-cozeLoop专项/000-TODO.md",
+                "file": "98-Private/密码串.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "000-TODO 的大纲"
+              "title": "密码串 的大纲"
             }
           },
           {
@@ -223,6 +223,8 @@
   },
   "active": "3aa707ca82afce23",
   "lastOpenFiles": [
+    "保险箱.md",
+    "01-场景设计/010-cozeLoop专项/000-TODO.md",
     "98-Private/文件夹1/文件夹3/笔记66.md",
     "index.md",
     "98-Private/文件夹1/文件夹3",
@@ -230,7 +232,6 @@
     "99-关联树/未命名",
     "未命名",
     "chat.md",
-    "保险箱.md",
     "未命名.md",
     "未命名 1/未命名.canvas",
     "未命名 2",
@@ -242,7 +243,6 @@
     "未命名 1",
     "未命名/未命名",
     "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
-    "01-场景设计/010-cozeLoop专项/000-TODO.md",
     "01-场景设计/010-cozeLoop专项/未命名.md",
     "98-Private/文件夹/笔记2.md",
     "96-杂项/010-建站/050-基于 VitePress 构建 GitHub Pages 知识库.md",

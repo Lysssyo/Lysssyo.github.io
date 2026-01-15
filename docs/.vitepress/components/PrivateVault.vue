@@ -3,7 +3,6 @@ import { ref, watch, computed, onMounted } from 'vue'
 import MarkdownIt from 'markdown-it'
 import { privateStore, type PrivateFile } from '../store'
 import FileTreeNode from './FileTreeNode.vue'
-// 引入路由
 import { useRoute, useRouter } from 'vitepress'
 
 const route = useRoute()
@@ -20,6 +19,7 @@ const sidebarRef = ref<HTMLElement | null>(null)
 // 按钮位置状态 (默认左上角)
 const btnPos = ref({ top: 12, left: 12 })
 const isBtnDragging = ref(false)
+const pendingAnchor = ref('') // 待跳转的锚点
 
 // 按钮拖拽逻辑
 function initBtnDrag(e: MouseEvent | TouchEvent) {
@@ -43,7 +43,6 @@ function initBtnDrag(e: MouseEvent | TouchEvent) {
     const deltaY = clientY - startY
     
     // 放宽判定阈值：只有移动超过 5px 才算拖拽
-    // 移动端点击时手指很容易产生 2-4px 的位移，如果阈值太低会导致点击失效
     if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
       hasMoved = true
       isBtnDragging.value = true
@@ -67,7 +66,6 @@ function initBtnDrag(e: MouseEvent | TouchEvent) {
   }
 
   const onUp = () => {
-    // 如果没有发生拖拽，则触发点击切换
     if (!hasMoved) {
       toggleSidebar()
     }
@@ -93,12 +91,10 @@ window.addEventListener('resize', () => {
 function toggleSidebar() {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
   
-  // 清除手动设置的 style，让 Vue 接管
   if (sidebarRef.value) {
     sidebarRef.value.style.width = ''
   }
   
-  // 安全检查
   if (!isSidebarCollapsed.value && sidebarWidth.value < 150) {
     sidebarWidth.value = 250
   }
@@ -120,7 +116,6 @@ function initResize(e: MouseEvent) {
   let animationFrameId: number
 
   const onMouseMove = (moveEvent: MouseEvent) => {
-    // 使用 rAF 节流，避免在一帧内多次触发重排
     if (animationFrameId) cancelAnimationFrame(animationFrameId)
     
     animationFrameId = requestAnimationFrame(() => {
@@ -129,7 +124,6 @@ function initResize(e: MouseEvent) {
       if (newWidth < 150) newWidth = 150
       if (newWidth > 500) newWidth = 500
       
-      // 直接操作 DOM，实时反馈
       if (sidebarEl) {
         sidebarEl.style.width = `${newWidth}px`
       }
@@ -144,7 +138,6 @@ function initResize(e: MouseEvent) {
     
     if (animationFrameId) cancelAnimationFrame(animationFrameId)
     
-    // 同步最终状态
     const delta = upEvent.clientX - startX
     let newWidth = startWidth + delta
     if (newWidth < 150) newWidth = 150
@@ -178,6 +171,24 @@ const md = new MarkdownIt({
     return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
   }
 })
+
+// 为标题添加 ID 以支持锚点跳转
+md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]
+  // 获取标题文本内容 (下一个 token 是 inline)
+  const titleToken = tokens[idx + 1]
+  let title = ''
+  if (titleToken && titleToken.content) {
+    title = titleToken.content
+  }
+  
+  // 生成 ID: 简单处理，直接使用文本作为 ID (支持中文)
+  if (title) {
+    token.attrSet('id', title)
+  }
+  
+  return self.renderToken(tokens, idx, options)
+}
 
 // 动态加载 Highlight.js
 function loadHighlight() {
@@ -241,6 +252,26 @@ function buildFileTree(flatFiles: any[]): PrivateFile[] {
   return root
 }
 
+// 递归查找文件节点，并设置路径上所有父节点的 expanded = true
+function findAndExpand(nodes: PrivateFile[], targetPath: string): PrivateFile | null {
+  for (const node of nodes) {
+    // 检查是否匹配：全路径匹配 或 后缀匹配
+    if (node.type === 'file' && (node.path === targetPath || node.path.endsWith(targetPath))) {
+      return node
+    }
+    
+    if (node.type === 'dir' && node.children) {
+      const found = findAndExpand(node.children, targetPath)
+      if (found) {
+        // 如果子节点被找到了，说明当前节点是父级路径的一部分，需要展开
+        node.expanded = true
+        return found
+      }
+    }
+  }
+  return null
+}
+
 async function unlock() {
   loading.value = true
   errorMsg.value = ''
@@ -272,26 +303,32 @@ async function unlock() {
       if (targetPath) {
         let rawPath = decodeURIComponent(targetPath)
         
+        // 提取锚点
+        const hashMatch = rawPath.match(/#.+$/)
+        if (hashMatch) {
+          pendingAnchor.value = hashMatch[0]
+        }
+
         // 1. 提取有效路径：截取 '98-Private/' 之后的部分
-        // 兼容不同的链接形式: /98-Private/..., ../../98-Private/...
         const keyword = '98-Private/'
         let cleanPath = ''
         const idx = rawPath.indexOf(keyword)
         if (idx !== -1) {
           cleanPath = rawPath.substring(idx + keyword.length)
         } else {
+          // 移除所有 ../ 和 ./
           cleanPath = rawPath.replace(/^(\.\.\/)+/, '').replace(/^(\.\/)+/, '')
         }
 
-        // 1.5 移除 URL 锚点 (例如 #section)
+        // 1.5 移除 URL 锚点
         cleanPath = cleanPath.split('#')[0]
 
-        // 2. 修正扩展名：VitePress 链接通常是 .html，但仓库是 .md
+        // 2. 修正扩展名
         cleanPath = cleanPath.replace(/\.html$/, '.md')
 
         console.log('[Debug] 原始Target:', targetPath)
         console.log('[Debug] 修正后Path:', cleanPath)
-        console.log('[Debug] 仓库文件示例:', realData.files.slice(0, 3).map(f => f.path))
+        console.log('[Debug] 锚点:', pendingAnchor.value)
 
         // 递归查找并展开
         const foundNode = findAndExpand(privateStore.fileList, cleanPath)
@@ -310,27 +347,6 @@ async function unlock() {
   } finally {
     loading.value = false
   }
-}
-
-// 递归查找文件节点，并设置路径上所有父节点的 expanded = true
-function findAndExpand(nodes: PrivateFile[], targetPath: string): PrivateFile | null {
-  for (const node of nodes) {
-    // 检查是否匹配：全路径匹配 或 后缀匹配
-    // GitHub API 返回的 path 可能是全路径，我们尽量宽松匹配
-    if (node.type === 'file' && (node.path === targetPath || node.path.endsWith(targetPath))) {
-      return node
-    }
-    
-    if (node.type === 'dir' && node.children) {
-      const found = findAndExpand(node.children, targetPath)
-      if (found) {
-        // 如果子节点被找到了，说明当前节点是父级路径的一部分，需要展开
-        node.expanded = true
-        return found
-      }
-    }
-  }
-  return null
 }
 
 async function selectFile(file: PrivateFile) {
@@ -377,6 +393,28 @@ const renderedContent = computed(() => {
   
   return md.render(cleanContent)
 })
+
+// 监听内容渲染完成，处理锚点跳转
+watch(renderedContent, () => {
+  if (pendingAnchor.value) {
+    // 给予 Markdown 渲染和 DOM 更新一点时间
+    setTimeout(() => {
+      let selector = pendingAnchor.value
+      try {
+         const id = decodeURIComponent(selector.replace(/^#/, ''))
+         const el = document.getElementById(id)
+         if (el) {
+           el.scrollIntoView({ behavior: 'smooth' })
+           pendingAnchor.value = '' // 清除状态
+         } else {
+            console.warn('[PrivateVault] Anchor not found:', id)
+         }
+      } catch (e) {
+        console.error(e)
+      }
+    }, 300) // 300ms 延迟确保 DOM 挂载
+  }
+})
 </script>
 
 <template>
@@ -409,7 +447,7 @@ const renderedContent = computed(() => {
       
       <!-- Toggle Button (Draggable) -->
       <button 
-        class="mobile-sidebar-toggle" 
+        class="mobile-sidebar-toggle"
         :style="{ top: btnPos.top + 'px', left: btnPos.left + 'px', cursor: isBtnDragging ? 'grabbing' : 'pointer' }"
         @mousedown="initBtnDrag"
         @touchstart="initBtnDrag"
@@ -426,7 +464,7 @@ const renderedContent = computed(() => {
           <span class="vault-title">📦 远程文件库</span>
         </div>
         
-        <div class="file-tree">
+        <div class="file-tree"> 
            <FileTreeNode 
              v-for="node in privateStore.fileList" 
              :key="node.path"
