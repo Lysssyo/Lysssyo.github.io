@@ -29,7 +29,7 @@
               "state": {
                 "file": "98-Private/密码串.md",
                 "mode": "source",
-                "source": false
+                "source": true
               },
               "icon": "lucide-file",
               "title": "密码串"
@@ -221,18 +221,21 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "3aa707ca82afce23",
+  "active": "d04a1e00f3109c72",
   "lastOpenFiles": [
-    "保险箱.md",
+    "98-Private/文件夹1/笔记1.md",
+    "98-Private/密码串.md",
+    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
+    "999-TODO.md",
     "01-场景设计/010-cozeLoop专项/000-TODO.md",
+    "chat.md",
     "98-Private/文件夹1/文件夹3/笔记66.md",
+    "保险箱.md",
     "index.md",
     "98-Private/文件夹1/文件夹3",
     "99-关联树/未命名.md",
     "99-关联树/未命名",
     "未命名",
-    "chat.md",
-    "未命名.md",
     "未命名 1/未命名.canvas",
     "未命名 2",
     "未命名 1/未命名 1",
@@ -242,7 +245,6 @@
     "99-关联树/Redis相关.md",
     "未命名 1",
     "未命名/未命名",
-    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
     "01-场景设计/010-cozeLoop专项/未命名.md",
     "98-Private/文件夹/笔记2.md",
     "96-杂项/010-建站/050-基于 VitePress 构建 GitHub Pages 知识库.md",
@@ -258,8 +260,6 @@
     "96-杂项/010-建站/020-SSL证书.md",
     "96-杂项/010-建站/010-DNS解析.md",
     "96-杂项/建站/未命名",
-    "03-java/010-集合源码分析.md",
-    "98-Private/文件夹1/笔记1.md",
     "public/logo.svg"
   ]
 }
