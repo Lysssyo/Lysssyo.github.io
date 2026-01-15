@@ -207,10 +207,12 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "d5d83dabb5ab5429",
+  "active": "d04a1e00f3109c72",
   "lastOpenFiles": [
-    "01-场景设计/010-cozeLoop专项/020-cozeLoop初识.md",
+    "chat.md",
+    "index.md",
     "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
+    "01-场景设计/010-cozeLoop专项/020-cozeLoop初识.md",
     "01-场景设计/010-cozeLoop专项/000-TODO.md",
     "01-场景设计/010-cozeLoop专项/070-请求大模型全流程.md",
     "01-场景设计/010-cozeLoop专项/060-数据集版本控制.md",
@@ -219,8 +221,6 @@
     "01-场景设计/010-cozeLoop专项/030-写后读保护策略.md",
     "01-场景设计/020-基于Redis TTL实现心跳监测.md",
     "保险箱.md",
-    "index.md",
-    "chat.md",
     "96-杂项/010-建站/050-基于 VitePress 构建 GitHub Pages 知识库.md",
     "96-杂项/010-建站/040-响应头字段Content-Disposition.md",
     "96-杂项/010-建站/030-跨域.md",

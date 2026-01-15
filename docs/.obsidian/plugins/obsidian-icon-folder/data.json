@@ -1,0 +1,60 @@
+{
+  "settings": {
+    "migrated": 6,
+    "iconPacksPath": ".obsidian/icons",
+    "fontSize": 16,
+    "emojiStyle": "native",
+    "iconColor": null,
+    "recentlyUsedIcons": [
+      "LiFolder"
+    ],
+    "recentlyUsedIconsSize": 5,
+    "rules": [
+      {
+        "rule": ".md",
+        "icon": "LiFile",
+        "for": "everything",
+        "order": 0
+      },
+      {
+        "rule": ".",
+        "icon": "LiFolder",
+        "for": "everything",
+        "order": 1
+      }
+    ],
+    "extraMargin": {
+      "top": 0,
+      "right": 4,
+      "bottom": 0,
+      "left": 0
+    },
+    "iconInTabsEnabled": false,
+    "iconInTitleEnabled": false,
+    "iconInTitlePosition": "above",
+    "iconInFrontmatterEnabled": false,
+    "iconInFrontmatterFieldName": "icon",
+    "iconColorInFrontmatterFieldName": "iconColor",
+    "iconsBackgroundCheckEnabled": false,
+    "iconsInNotesEnabled": true,
+    "iconsInLinksEnabled": true,
+    "iconIdentifier": ":",
+    "lucideIconPackType": "native",
+    "debugMode": false,
+    "useInternalPlugins": false
+  },
+  "01-场景设计": "LiFolder",
+  "02-中间件": "LiFolder",
+  "03-java": "LiFolder",
+  "04-数据库": "LiFolder",
+  "05-分布式": "LiFolder",
+  "06-golang": "LiFolder",
+  "80-人工智能": "LiFolder",
+  "81-量化": "LiFolder",
+  "96-杂项": "LiFolder",
+  "97-运动健身": "LiFolder",
+  "98-Private": "LiFolder",
+  "99-关联树": "LiFolder",
+  "96-杂项/010-建站": "LiFolder",
+  "01-场景设计/010-cozeLoop专项": "LiFolder"
+}
