@@ -7,42 +7,78 @@ const password = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
 const API_URL = 'https://privatege-proxy-uypbjhvwjb.cn-hongkong.fcapp.run/'
-const sidebarWidth = ref(250) // 侧边栏宽度状态
+const sidebarWidth = ref(250)
 const isResizing = ref(false)
-const isSidebarCollapsed = ref(window.innerWidth < 768) // 移动端默认折叠
+const isSidebarCollapsed = ref(window.innerWidth < 768)
+const sidebarRef = ref<HTMLElement | null>(null)
+const ghostLeft = ref(0) // 幽灵手柄的位置
 
-// 监听窗口大小，自动调整移动端状态
+// 监听窗口大小
 window.addEventListener('resize', () => {
-  // 可选：窗口变大时自动展开，或者保持状态
+  // 可选：移动端自动折叠逻辑
 })
 
 function toggleSidebar() {
   isSidebarCollapsed.value = !isSidebarCollapsed.value
+  
+  // 清除手动设置的 style，让 Vue 接管
+  if (sidebarRef.value) {
+    sidebarRef.value.style.width = ''
+  }
+  
+  // 安全检查
+  if (!isSidebarCollapsed.value && sidebarWidth.value < 150) {
+    sidebarWidth.value = 250
+  }
 }
 
-// 拖拽逻辑
+// 拖拽逻辑 (rAF 优化版：实时跟手)
 function initResize(e: MouseEvent) {
   if (isSidebarCollapsed.value) return 
   
   isResizing.value = true
-  const startX = e.clientX
-  const startWidth = sidebarWidth.value
-  
+  document.body.classList.add('vp-resizing')
   document.body.style.cursor = 'col-resize'
   document.body.style.userSelect = 'none'
+  
+  const startX = e.clientX
+  const startWidth = sidebarWidth.value
+  const sidebarEl = sidebarRef.value
+  
+  let animationFrameId: number
 
   const onMouseMove = (moveEvent: MouseEvent) => {
-    const delta = moveEvent.clientX - startX
+    // 使用 rAF 节流，避免在一帧内多次触发重排
+    if (animationFrameId) cancelAnimationFrame(animationFrameId)
+    
+    animationFrameId = requestAnimationFrame(() => {
+      const delta = moveEvent.clientX - startX
+      let newWidth = startWidth + delta
+      if (newWidth < 150) newWidth = 150
+      if (newWidth > 500) newWidth = 500
+      
+      // 直接操作 DOM，实时反馈
+      if (sidebarEl) {
+        sidebarEl.style.width = `${newWidth}px`
+      }
+    })
+  }
+
+  const onMouseUp = (upEvent: MouseEvent) => {
+    isResizing.value = false
+    document.body.classList.remove('vp-resizing')
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    
+    if (animationFrameId) cancelAnimationFrame(animationFrameId)
+    
+    // 同步最终状态
+    const delta = upEvent.clientX - startX
     let newWidth = startWidth + delta
     if (newWidth < 150) newWidth = 150
     if (newWidth > 500) newWidth = 500
     sidebarWidth.value = newWidth
-  }
-
-  const onMouseUp = () => {
-    isResizing.value = false
-    document.body.style.cursor = ''
-    document.body.style.userSelect = ''
+    
     window.removeEventListener('mousemove', onMouseMove)
     window.removeEventListener('mouseup', onMouseUp)
   }
@@ -243,25 +279,26 @@ const renderedContent = computed(() => {
     <!-- State 2: Unlocked -->
     <div v-else class="vault-ui" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
       
-      <!-- Resizer Handle (仅在展开时显示) -->
-      <div v-show="!isSidebarCollapsed" class="vault-resizer" @mousedown="initResize"></div>
-
       <!-- Toggle Button (始终显示，位于左上角) -->
       <button class="mobile-sidebar-toggle" @click="toggleSidebar" title="切换文件列表">
         <span class="icon">📂</span>
       </button>
 
       <!-- Sidebar -->
-      <div class="vault-sidebar" :style="{ width: isSidebarCollapsed ? '0px' : sidebarWidth + 'px' }">
+      <div class="vault-sidebar" 
+           ref="sidebarRef"
+           :style="{ width: isSidebarCollapsed ? '0px' : sidebarWidth + 'px' }">
         <div class="vault-header">
           <span class="vault-title">📦 远程文件库</span>
         </div>
         
-        <div class="file-tree"> 
+        <div class="file-tree">
            <template v-for="node in privateStore.fileList" :key="node.path">
+             <!-- Folder (Level 1) -->
              <div v-if="node.type === 'dir'" class="tree-group">
                <div class="tree-folder-label">
-                 <span class="icon">📂</span><span>{{ node.name }}</span>
+                 <span class="icon">📂</span>
+                 <span>{{ node.name }}</span>
                 </div>
                <div class="tree-children">
                  <template v-for="child in node.children" :key="child.path">
@@ -272,12 +309,16 @@ const renderedContent = computed(() => {
                  </template>
                </div>
              </div>
+             <!-- File (Level 1) -->
              <div v-else class="tree-item" :class="{ active: privateStore.currentDoc?.path === node.path }" @click="selectFile(node)">
                 <span class="icon">📄</span><span>{{ node.name }}</span>
              </div>
            </template>
         </div>
       </div>
+
+      <!-- Resizer Handle (Always visible to allow expanding) -->
+      <div class="vault-resizer" @mousedown="initResize"></div>
 
       <!-- Content -->
       <div class="vault-content">
@@ -362,6 +403,11 @@ const renderedContent = computed(() => {
   overflow-x: hidden; 
 }
 
+/* 拖拽时禁用过渡，消除滞后感 */
+:global(body.vp-resizing) .vault-sidebar {
+  transition: none !important;
+}
+
 /* 切换按钮 (左上角) */
 .mobile-sidebar-toggle {
   position: absolute;
@@ -379,19 +425,32 @@ const renderedContent = computed(() => {
   background: var(--vp-c-bg-alt);
 }
 
-/* 拖拽手柄 */
+/* 拖拽手柄样式 */
 .vault-resizer {
-  width: 4px;
+  width: 1px; /* 默认为一条细线 */
+  background: var(--vp-c-divider);
   cursor: col-resize;
-  background: transparent;
-  transition: background 0.2s;
-  flex-shrink: 0;
-  margin-left: -1px; 
+  position: relative;
   z-index: 10;
+  flex-shrink: 0;
+  transition: background 0.2s, width 0.2s;
 }
+
+/* 增加隐形热区 */
+.vault-resizer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -6px;
+  right: -6px;
+  z-index: 20;
+}
+
 .vault-resizer:hover,
 .vault-resizer:active {
   background: var(--vp-c-brand);
+  width: 4px; /* 激活时变宽 */
 }
 
 .vault-header {
