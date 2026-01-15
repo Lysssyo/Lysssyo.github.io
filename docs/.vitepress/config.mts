@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 import { generateSidebar } from 'vitepress-sidebar'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+import { VitePWA } from 'vite-plugin-pwa'
 import container from 'markdown-it-container'
 import fs from 'fs'
 import path from 'path'
@@ -41,7 +42,12 @@ export default withMermaid(defineConfig({
   titleTemplate: false,
   description: "As the stack grows",
   head: [
-    ['link', { rel: 'icon', href: hamburgerDataUrl }]
+    ['link', { rel: 'icon', href: hamburgerDataUrl }],
+    ['link', { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' }],
+    ['link', { rel: 'apple-touch-icon', href: '/pwa-192x192.png' }],
+    ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }],
+    ['meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'black' }],
+    ['meta', { name: 'theme-color', content: '#ffffff' }]
   ],
 
   // 核心魔法：动态修改页面数据
@@ -59,6 +65,36 @@ export default withMermaid(defineConfig({
     // 或者更粗暴一点，忽略所有 localhost 和 相对路径的错误（不推荐）
     // true, 
   ],
+
+  vite: {
+    plugins: [
+      VitePWA({
+        registerType: 'prompt',
+        includeAssets: ['logo.svg'],
+        manifest: {
+          name: 'Keith\'s Knowledge Base',
+          short_name: 'KeithKB',
+          description: 'Personal Knowledge Base powered by VitePress',
+          theme_color: '#ffffff',
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png'
+            }
+          ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+        }
+      })
+    ]
+  },
 
   themeConfig: {
     siteTitle: 'Keith\'s Knowledge Base',

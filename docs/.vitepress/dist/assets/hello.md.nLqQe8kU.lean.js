@@ -1,1 +1,0 @@
-import{_ as t,c as o,o as a,j as l}from"./chunks/framework.D-zcryB8.js";const _=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"hello.md","filePath":"hello.md"}'),r={name:"hello.md"};function s(n,e,c,p,d,i){return a(),o("div",null,[...e[0]||(e[0]=[l("p",null,"你好",-1)])])}const f=t(r,[["render",s]]);export{_ as __pageData,f as default};

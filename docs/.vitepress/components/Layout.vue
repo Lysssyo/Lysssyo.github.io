@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { useData, useRoute } from 'vitepress'
+import PwaReload from './PwaReload.vue'
 
 const { frontmatter } = useData()
 const route = useRoute()
@@ -138,6 +139,7 @@ watch(() => route.path, () => {
 </script>
 
 <template>
+  <PwaReload />
   <div 
     v-if="showHandle"
     class="sidebar-resize-handle"

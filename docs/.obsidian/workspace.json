@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "98-Private/密码串.md",
+                "file": "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
                 "mode": "source",
                 "source": true
               },
               "icon": "lucide-file",
-              "title": "密码串"
+              "title": "010-cozeLoopStartup"
             }
           }
         ],
@@ -109,13 +109,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "98-Private/密码串.md",
+                "file": "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "密码串 的大纲"
+              "title": "010-cozeLoopStartup 的大纲"
             }
           },
           {
@@ -221,14 +221,18 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "d04a1e00f3109c72",
+  "active": "3aa707ca82afce23",
   "lastOpenFiles": [
-    "98-Private/文件夹1/笔记1.md",
-    "98-Private/密码串.md",
+    "chat.md",
+    "public/pwa-512x512.png",
+    "public/pwa-192x192.png",
+    "public/logo.svg",
+    "public",
     "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
+    "98-Private/密码串.md",
+    "98-Private/文件夹1/笔记1.md",
     "999-TODO.md",
     "01-场景设计/010-cozeLoop专项/000-TODO.md",
-    "chat.md",
     "98-Private/文件夹1/文件夹3/笔记66.md",
     "保险箱.md",
     "index.md",
@@ -256,10 +260,6 @@
     "01-场景设计/010-cozeLoop专项/040-语义级分布式读写锁.md",
     "01-场景设计/010-cozeLoop专项/030-写后读保护策略.md",
     "01-场景设计/020-基于Redis TTL实现心跳监测.md",
-    "96-杂项/010-建站/030-跨域.md",
-    "96-杂项/010-建站/020-SSL证书.md",
-    "96-杂项/010-建站/010-DNS解析.md",
-    "96-杂项/建站/未命名",
-    "public/logo.svg"
+    "96-杂项/010-建站/030-跨域.md"
   ]
 }
