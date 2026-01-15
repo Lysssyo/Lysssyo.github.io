@@ -27,7 +27,7 @@
   --vp-c-danger-1: var(--vp-c-red-1);
   --vp-c-danger-2: var(--vp-c-red-2);
   --vp-c-danger-3: var(--vp-c-red-3);
-  --vp-c-danger-soft: var(--vp-c-red-soft);
+  --vp-c-danger-soft: var(--vp-c-danger-soft);
 }
 
 /**
@@ -155,4 +155,77 @@
 /* Force Last Updated to the right */
 .vp-doc-footer .last-updated {
   margin-left: auto;
+}
+
+/* --- Global Sidebar Style Enhancements --- */
+
+/* 1. 图标注入 */
+.VPSidebarItem.collapsible > .item .text::before {
+  content: "📂";
+  margin-right: 8px;
+  display: inline-block;
+}
+.VPSidebarItem:not(.collapsible) > .item .text::before {
+  content: "📄";
+  margin-right: 8px;
+  opacity: 0.8;
+  display: inline-block;
+}
+
+/* 2. 基础项布局 */
+.VPSidebarItem .item {
+  position: relative;
+  border-radius: 6px;
+  margin: 2px 0;
+  transition: background-color 0.2s;
+}
+
+.VPSidebarItem .item:hover {
+  background-color: var(--vp-c-bg-mute);
+}
+
+/* 3. 激活状态 (纯背景色模式，强制去除边框和阴影) */
+.VPSidebarItem .item.active {
+  background-color: var(--vp-c-brand-soft) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* 确保伪元素也不显示 */
+.VPSidebarItem .item.active::before {
+  display: none !important;
+  content: none !important;
+}
+
+.VPSidebarItem .item.active .text {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600;
+}
+
+/* 4. 层级缩进与辅助线 */
+
+/* 子容器的辅助线 */
+.VPSidebarItem .items {
+  border-left: 1px solid var(--vp-c-divider) !important;
+  margin-left: 10px !important; /* 线条位置：相对于父级缩进 10px */
+}
+
+/* 各级 Item 的 Padding */
+.VPSidebarItem.level-0 > .item { padding-left: 12px !important; }
+.VPSidebarItem.level-1 > .item { padding-left: 16px !important; }
+.VPSidebarItem.level-2 > .item { padding-left: 24px !important; }
+.VPSidebarItem.level-3 > .item { padding-left: 32px !important; }
+
+/* 文件夹标题加粗 */
+.VPSidebarItem.collapsible > .item .text {
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+/* --- Layout Adjustments --- */
+@media (min-width: 1440px) {
+  :root {
+    /* 移除最大布局宽度限制，确保侧边栏贴死左边缘 */
+    --vp-layout-max-width: 100% !important;
+  }
 }

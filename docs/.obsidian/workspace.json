@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
+                "file": "98-Private/文件夹/笔记2.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "010-cozeLoopStartup"
+              "title": "笔记2"
             }
           }
         ]
@@ -207,11 +207,11 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "d04a1e00f3109c72",
+  "active": "d5d83dabb5ab5429",
   "lastOpenFiles": [
+    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
     "chat.md",
     "index.md",
-    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
     "01-场景设计/010-cozeLoop专项/020-cozeLoop初识.md",
     "01-场景设计/010-cozeLoop专项/000-TODO.md",
     "01-场景设计/010-cozeLoop专项/070-请求大模型全流程.md",

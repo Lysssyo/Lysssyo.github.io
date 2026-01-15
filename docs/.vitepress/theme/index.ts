@@ -7,6 +7,7 @@ import 'markdown-it-github-alerts/styles/github-base.css'
 import 'markdown-it-github-alerts/styles/github-colors-light.css'
 import 'markdown-it-github-alerts/styles/github-colors-dark-class.css'
 import CryptoPrice from './components/CryptoPrice.vue'
+import Layout from '../components/Layout.vue'
 import { onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vitepress'
 import mediumZoom from 'medium-zoom'
@@ -15,7 +16,7 @@ export default {
   extends: DefaultTheme,
   Layout: () => {
     return h(DefaultTheme.Layout, null, {
-      // https://vitepress.dev/guide/extending-default-theme#layout-slots
+      'layout-bottom': () => h(Layout)      
     })
   },
   setup() {

@@ -191,12 +191,14 @@ const renderedContent = computed(() => {
         </div>
         
         <div class="file-tree">
-           <!-- Level 1 -->
            <template v-for="node in privateStore.fileList" :key="node.path">
              
              <!-- Folder (Level 1) -->
              <div v-if="node.type === 'dir'" class="tree-group">
-               <div class="tree-folder-label">{{ node.name }}</div>
+               <div class="tree-folder-label">
+                 <span class="icon">📂</span>
+                 <span>{{ node.name }}</span>
+                </div>
                
                <!-- Level 2 Children -->
                <div class="tree-children">
@@ -208,11 +210,17 @@ const renderedContent = computed(() => {
                      :class="{ active: privateStore.currentDoc?.path === child.path }"
                      @click="selectFile(child)"
                    >
-                     {{ child.name }}
+                     <span class="icon">📄</span>
+                     <span>{{ child.name }}</span>
                    </div>
-                   <!-- Nested Folder (Level 2) - Not recursive for simplicity, just show label -->
-                   <div v-else class="tree-folder-label-nested">
-                      📂 {{ child.name }} (Nested)
+                   
+                   <!-- Nested Folder (Level 2) -->
+                   <div v-else class="tree-group-nested">
+                      <div class="tree-folder-label">
+                        <span class="icon">📂</span>
+                        <span>{{ child.name }}</span>
+                      </div>
+                      <!-- We stop recursion here for this simple version, or we could continue -->
                    </div>
                  </template>
                </div>
@@ -225,7 +233,8 @@ const renderedContent = computed(() => {
                :class="{ active: privateStore.currentDoc?.path === node.path }"
                @click="selectFile(node)"
              >
-               {{ node.name }}
+                <span class="icon">📄</span>
+                <span>{{ node.name }}</span>
              </div>
 
            </template>
@@ -234,8 +243,9 @@ const renderedContent = computed(() => {
 
       <!-- Content -->
       <div class="vault-content">
-        <div v-if="privateStore.currentDoc" class="markdown-body">
-           <div v-html="renderedContent" class="md-content"></div>
+        <!-- 使用 vp-doc 类复用 VitePress 原生文档样式 -->
+        <div v-if="privateStore.currentDoc" class="vp-doc">
+           <div v-html="renderedContent"></div>
         </div>
         <div v-else class="empty-state">
           <div class="empty-icon">👋</div>
@@ -265,14 +275,15 @@ const renderedContent = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--vp-c-bg-alt);
+  background: var(--vp-c-bg);
 }
 .lock-card {
   text-align: center;
   padding: 40px;
   background: var(--vp-c-bg);
   border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+  border: 1px solid var(--vp-c-divider);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.05);
   width: 100%;
   max-width: 400px;
 }
@@ -285,7 +296,7 @@ const renderedContent = computed(() => {
   padding: 8px 12px;
   border: 1px solid var(--vp-c-divider);
   border-radius: 6px;
-  background: var(--vp-c-bg-alt);
+  background: var(--vp-c-bg);
 }
 .input-box button {
   padding: 8px 16px;
@@ -301,7 +312,7 @@ const renderedContent = computed(() => {
 .vault-sidebar {
   width: 250px;
   border-right: 1px solid var(--vp-c-divider);
-  background: var(--vp-c-bg-alt);
+  background: var(--vp-c-bg);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -312,27 +323,54 @@ const renderedContent = computed(() => {
   font-weight: 600;
   color: var(--vp-c-text-1);
 }
-.file-tree { padding: 10px; flex: 1; }
+.file-tree { padding: 8px; }
+.tree-group { margin-bottom: 4px; }
+
 .tree-folder-label {
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  padding: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--vp-c-text-2);
-  margin-top: 8px;
+  text-transform: uppercase;
 }
+
+.tree-children {
+  padding-left: 16px;
+}
+
 .tree-item {
-  padding: 6px 12px 6px 24px;
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  margin-left: 4px;
   font-size: 14px;
   color: var(--vp-c-text-1);
   cursor: pointer;
   border-radius: 4px;
-  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tree-item:hover { background: var(--vp-c-bg-mute); }
-.tree-item.active { background: var(--vp-c-brand-dimm); color: var(--vp-c-brand); font-weight: 500; }
+
+.tree-item .icon {
+  margin-right: 6px;
+}
+
+.tree-folder-label .icon {
+  margin-right: 6px;
+}
+
+.tree-item:hover { 
+  background: var(--vp-c-bg-mute); 
+}
+
+.tree-item.active { 
+  background: var(--vp-c-brand-dimm); 
+  color: var(--vp-c-brand); 
+  font-weight: 600; 
+}
 
 .vault-content {
   flex: 1;
@@ -349,12 +387,4 @@ const renderedContent = computed(() => {
   color: var(--vp-c-text-2);
 }
 .empty-icon { font-size: 48px; margin-bottom: 16px; }
-
-/* Markdown Override */
-.md-content :deep(h1) { font-size: 2.2em; font-weight: 700; margin-bottom: 1em; border-bottom: 1px solid var(--vp-c-divider); padding-bottom: 0.3em; }
-.md-content :deep(h2) { font-size: 1.6em; font-weight: 600; margin: 1.5em 0 0.8em; }
-.md-content :deep(p) { margin-bottom: 1.2em; line-height: 1.6; }
-.md-content :deep(ul) { list-style: disc; padding-left: 20px; margin-bottom: 1.2em; }
-.md-content :deep(code) { font-family: monospace; background: var(--vp-c-bg-mute); padding: 2px 5px; border-radius: 4px; font-size: 0.9em; }
-.md-content :deep(pre) { background: var(--vp-c-bg-mute); padding: 16px; border-radius: 8px; overflow-x: auto; margin-bottom: 1.2em; }
 </style>
