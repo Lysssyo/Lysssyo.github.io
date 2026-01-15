@@ -11,7 +11,70 @@ const sidebarWidth = ref(250)
 const isResizing = ref(false)
 const isSidebarCollapsed = ref(window.innerWidth < 768)
 const sidebarRef = ref<HTMLElement | null>(null)
-const ghostLeft = ref(0) // 幽灵手柄的位置
+// 按钮位置状态 (默认左上角)
+const btnPos = ref({ top: 12, left: 12 })
+const isBtnDragging = ref(false)
+
+// 按钮拖拽逻辑
+function initBtnDrag(e: MouseEvent | TouchEvent) {
+  // 阻止默认滚动
+  // e.preventDefault() // 注意：在 touchstart 阻止默认可能会影响点击，先不加
+
+  const startX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX
+  const startY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY
+  const startLeft = btnPos.value.left
+  const startTop = btnPos.value.top
+  
+  let hasMoved = false
+
+  const onMove = (moveEvent: MouseEvent | TouchEvent) => {
+    const clientX = moveEvent instanceof MouseEvent ? moveEvent.clientX : moveEvent.touches[0].clientX
+    const clientY = moveEvent instanceof MouseEvent ? moveEvent.clientY : moveEvent.touches[0].clientY
+    
+    const deltaX = clientX - startX
+    const deltaY = clientY - startY
+    
+    // 只有移动超过一定距离才算拖拽
+    if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+      hasMoved = true
+      isBtnDragging.value = true
+    }
+    
+    if (hasMoved) {
+      moveEvent.preventDefault() // 拖拽时阻止滚动
+      let newLeft = startLeft + deltaX
+      let newTop = startTop + deltaY
+      
+      // 边界限制
+      const maxLeft = window.innerWidth - 40 // 按钮宽约40
+      const maxTop = window.innerHeight - 40
+      if (newLeft < 0) newLeft = 0
+      if (newLeft > maxLeft) newLeft = maxLeft
+      if (newTop < 0) newTop = 0
+      if (newTop > maxTop) newTop = maxTop
+      
+      btnPos.value = { left: newLeft, top: newTop }
+    }
+  }
+
+  const onUp = () => {
+    // 如果没有发生拖拽，则触发点击切换
+    if (!hasMoved) {
+      toggleSidebar()
+    }
+    
+    isBtnDragging.value = false
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+    window.removeEventListener('touchmove', onMove)
+    window.removeEventListener('touchend', onUp)
+  }
+
+  window.addEventListener('mousemove', onMove, { passive: false })
+  window.addEventListener('mouseup', onUp)
+  window.addEventListener('touchmove', onMove, { passive: false })
+  window.addEventListener('touchend', onUp)
+}
 
 // 监听窗口大小
 window.addEventListener('resize', () => {
@@ -279,8 +342,14 @@ const renderedContent = computed(() => {
     <!-- State 2: Unlocked -->
     <div v-else class="vault-ui" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
       
-      <!-- Toggle Button (始终显示，位于左上角) -->
-      <button class="mobile-sidebar-toggle" @click="toggleSidebar" title="切换文件列表">
+      <!-- Toggle Button (Draggable) -->
+      <button 
+        class="mobile-sidebar-toggle" 
+        :style="{ top: btnPos.top + 'px', left: btnPos.left + 'px', cursor: isBtnDragging ? 'grabbing' : 'pointer' }"
+        @mousedown="initBtnDrag"
+        @touchstart="initBtnDrag"
+        title="切换文件列表 (可拖动)"
+      >
         <span class="icon">📂</span>
       </button>
 
@@ -455,6 +524,7 @@ const renderedContent = computed(() => {
 
 .vault-header {
   padding: 16px;
+  padding-left: 50px; /* 给 toggle 按钮留出空间 */
   border-bottom: 1px solid var(--vp-c-divider);
   font-weight: 600;
   color: var(--vp-c-text-1);
