@@ -34,8 +34,9 @@ function initBtnDrag(e: MouseEvent | TouchEvent) {
     const deltaX = clientX - startX
     const deltaY = clientY - startY
     
-    // 只有移动超过一定距离才算拖拽
-    if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
+    // 放宽判定阈值：只有移动超过 5px 才算拖拽
+    // 移动端点击时手指很容易产生 2-4px 的位移，如果阈值太低会导致点击失效
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
       hasMoved = true
       isBtnDragging.value = true
     }
