@@ -2,6 +2,7 @@
 import { ref, watch, computed, onMounted } from 'vue'
 import MarkdownIt from 'markdown-it'
 import { privateStore, type PrivateFile } from '../store'
+import FileTreeNode from './FileTreeNode.vue'
 
 const password = ref('')
 const loading = ref(false)
@@ -365,27 +366,13 @@ const renderedContent = computed(() => {
         </div>
         
         <div class="file-tree">
-           <template v-for="node in privateStore.fileList" :key="node.path">
-             <!-- Folder (Level 1) -->
-             <div v-if="node.type === 'dir'" class="tree-group">
-               <div class="tree-folder-label">
-                 <span class="icon">📂</span>
-                 <span>{{ node.name }}</span>
-                </div>
-               <div class="tree-children">
-                 <template v-for="child in node.children" :key="child.path">
-                   <div v-if="child.type === 'file'" class="tree-item" :class="{ active: privateStore.currentDoc?.path === child.path }" @click="selectFile(child)">
-                     <span class="icon">📄</span><span>{{ child.name }}</span>
-                   </div>
-                   <div v-else class="tree-group-nested"><div class="tree-folder-label"><span class="icon">📂</span><span>{{ child.name }}</span></div></div>
-                 </template>
-               </div>
-             </div>
-             <!-- File (Level 1) -->
-             <div v-else class="tree-item" :class="{ active: privateStore.currentDoc?.path === node.path }" @click="selectFile(node)">
-                <span class="icon">📄</span><span>{{ node.name }}</span>
-             </div>
-           </template>
+           <FileTreeNode 
+             v-for="node in privateStore.fileList" 
+             :key="node.path"
+             :node="node"
+             :currentPath="privateStore.currentDoc?.path"
+             @select="selectFile"
+           />
         </div>
       </div>
 
