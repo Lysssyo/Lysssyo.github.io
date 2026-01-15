@@ -1,9 +1,16 @@
+---
+date created: 2026-01-15 12:05:30
+date modified: 2026-01-16 00:08:29
+---
 # Coze-Loop-Startup
 
 ## **0. 场景概述**
 
 - 依赖服务`MySQL/Redis/ClickHouse/MinIO/RocketMQ/FaaS`部署在远程服务器的 docker compose 中。
 - 本地仅启动后端（可选启动前端），通过公网或 SSH 隧道访问远程依赖。
+
+你好！！！
+你好888
 
 ## **1. 服务器准备**
 
