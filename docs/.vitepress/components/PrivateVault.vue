@@ -411,13 +411,33 @@ const renderedContent = computed(() => {
 
 <style scoped>
 .vault-wrapper {
+  /* Fixed positioning to fill the remaining area */
+  position: fixed;
+  top: var(--vp-nav-height);
+  right: 0;
+  bottom: 0;
+  /* Start after the sidebar */
+  left: var(--vp-sidebar-width, 0);
+  width: calc(100vw - var(--vp-sidebar-width, 0));
+  
+  z-index: 15;
   background: var(--vp-c-bg);
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
+  border-top: 1px solid var(--vp-c-divider);
+  border-left: 1px solid var(--vp-c-divider);
+  border-radius: 0;
+  
   overflow: hidden;
-  height: 600px;
   display: flex;
   flex-direction: column;
+}
+
+/* On mobile, the sidebar is usually hidden or overlayed, so we take full width */
+@media (max-width: 959px) {
+  .vault-wrapper {
+    left: 0;
+    width: 100vw;
+    border-left: none;
+  }
 }
 
 .lock-screen {
