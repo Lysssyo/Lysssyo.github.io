@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "index.md",
+                "file": "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "index"
+              "title": "010-cozeLoopStartup"
             }
           },
           {
@@ -35,8 +35,7 @@
               "title": "010-cozeLoopStartup"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -221,9 +220,10 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "3aa707ca82afce23",
+  "active": "d5d83dabb5ab5429",
   "lastOpenFiles": [
     "chat.md",
+    "index.md",
     "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
     "public/pwa-512x512.png",
     "public/pwa-192x192.png",
@@ -235,7 +235,6 @@
     "01-场景设计/010-cozeLoop专项/000-TODO.md",
     "98-Private/文件夹1/文件夹3/笔记66.md",
     "保险箱.md",
-    "index.md",
     "98-Private/文件夹1/文件夹3",
     "99-关联树/未命名.md",
     "99-关联树/未命名",
