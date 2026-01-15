@@ -6,20 +6,22 @@
     "emojiStyle": "native",
     "iconColor": null,
     "recentlyUsedIcons": [
+      "LiFile",
       "LiFolder"
     ],
     "recentlyUsedIconsSize": 5,
     "rules": [
       {
-        "rule": ".md",
+        "rule": ".",
         "icon": "LiFile",
-        "for": "everything",
-        "order": 0
+        "for": "files",
+        "order": 0,
+        "useFilePath": true
       },
       {
         "rule": ".",
         "icon": "LiFolder",
-        "for": "everything",
+        "for": "folders",
         "order": 1
       }
     ],
@@ -56,5 +58,6 @@
   "98-Private": "LiFolder",
   "99-关联树": "LiFolder",
   "96-杂项/010-建站": "LiFolder",
-  "01-场景设计/010-cozeLoop专项": "LiFolder"
+  "01-场景设计/010-cozeLoop专项": "LiFolder",
+  "chat.md": "LiFile"
 }

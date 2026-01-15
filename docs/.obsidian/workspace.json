@@ -13,15 +13,30 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "chat.md",
+                "file": "index.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "chat"
+              "title": "index"
+            }
+          },
+          {
+            "id": "3aa707ca82afce23",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "index.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "index"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -94,13 +109,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "01-场景设计/010-coze-loop专项/000-TODO.md",
+                "file": "index.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "000-TODO 的大纲"
+              "title": "index 的大纲"
             }
           },
           {
@@ -187,8 +202,7 @@
               "title": "010-websocket推送链路高可用机制的笔记属性"
             }
           }
-        ],
-        "currentTab": 4
+        ]
       }
     ],
     "direction": "horizontal",
@@ -207,23 +221,37 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "d5d83dabb5ab5429",
+  "active": "d04a1e00f3109c72",
   "lastOpenFiles": [
+    "99-关联树/未命名.md",
+    "index.md",
+    "99-关联树/未命名",
+    "未命名",
+    "chat.md",
+    "保险箱.md",
+    "未命名.md",
+    "未命名 1/未命名.canvas",
+    "未命名 2",
+    "未命名 1/未命名 1",
+    "未命名 1/未命名/未命名",
+    "未命名 1/未命名",
+    "未命名 1/未命名.md",
+    "99-关联树/Redis相关.md",
+    "未命名 1",
+    "未命名/未命名",
+    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
+    "01-场景设计/010-cozeLoop专项/000-TODO.md",
+    "01-场景设计/010-cozeLoop专项/未命名.md",
     "98-Private/文件夹/笔记2.md",
     "96-杂项/010-建站/050-基于 VitePress 构建 GitHub Pages 知识库.md",
     "96-杂项/010-建站/040-响应头字段Content-Disposition.md",
-    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
-    "chat.md",
-    "index.md",
     "01-场景设计/010-cozeLoop专项/020-cozeLoop初识.md",
-    "01-场景设计/010-cozeLoop专项/000-TODO.md",
     "01-场景设计/010-cozeLoop专项/070-请求大模型全流程.md",
     "01-场景设计/010-cozeLoop专项/060-数据集版本控制.md",
     "01-场景设计/010-cozeLoop专项/050-用RowsAffected精确推算Insert数以及批量Upsert主键回填的写后读策略.md",
     "01-场景设计/010-cozeLoop专项/040-语义级分布式读写锁.md",
     "01-场景设计/010-cozeLoop专项/030-写后读保护策略.md",
     "01-场景设计/020-基于Redis TTL实现心跳监测.md",
-    "保险箱.md",
     "96-杂项/010-建站/030-跨域.md",
     "96-杂项/010-建站/020-SSL证书.md",
     "96-杂项/010-建站/010-DNS解析.md",
@@ -231,20 +259,7 @@
     "96-杂项/010-建站",
     "03-java/010-集合源码分析.md",
     "98-Private/文件夹1/笔记1.md",
-    "98-Private/文件夹",
-    "98-Private/文件夹1",
     "06-golang/010-golang实现责任链.md",
-    "06-golang",
-    "98-Private/密码串.md",
-    "未命名.base",
-    "未命名 1.base",
-    "01-场景设计/coze-loop专项/业务相关",
-    "01-场景设计/010-websocket推送链路高可用机制.md",
-    "01-场景设计/010-cozeLoop专项",
-    "99-关联树/Redis相关.md",
-    "05-分布式/010-分布式事务.md",
-    "80-人工智能/010-机器学习.md",
-    "关联树.base",
     "public/logo.svg"
   ]
 }

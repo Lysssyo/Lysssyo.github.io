@@ -17,8 +17,10 @@ const isBtnDragging = ref(false)
 
 // 按钮拖拽逻辑
 function initBtnDrag(e: MouseEvent | TouchEvent) {
-  // 阻止默认滚动
-  // e.preventDefault() // 注意：在 touchstart 阻止默认可能会影响点击，先不加
+  // 阻止默认滚动与鼠标事件透传 (修复移动端双重触发问题)
+  if (e.type === 'touchstart') {
+    e.preventDefault()
+  }
 
   const startX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX
   const startY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY
