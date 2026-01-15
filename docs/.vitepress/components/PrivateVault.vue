@@ -524,14 +524,9 @@ watch(renderedContent, () => {
     width: 100vw;
     border-left: none;
     
-    /* Use dvh (Dynamic Viewport Height) to handle mobile browser bars */
+    /* Use VitePress CSS variable for mobile local nav height */
     top: calc(var(--vp-nav-height) + var(--vp-local-nav-height, 0px));
-    height: calc(100dvh - var(--vp-nav-height) - var(--vp-local-nav-height, 0px));
-  }
-
-  .vault-content {
-    /* Add padding for mobile bottom bars and safe areas (notches) */
-    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+    height: calc(100vh - var(--vp-nav-height) - var(--vp-local-nav-height, 0px));
   }
 }
 
