@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "98-Private/文件夹1/文件夹3/笔记66.md",
+                "file": "01-场景设计/010-cozeLoop专项/000-TODO.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "笔记66"
+              "title": "000-TODO"
             }
           }
         ],
@@ -109,13 +109,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "98-Private/文件夹1/文件夹3/笔记66.md",
+                "file": "01-场景设计/010-cozeLoop专项/000-TODO.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "笔记66 的大纲"
+              "title": "000-TODO 的大纲"
             }
           },
           {
@@ -223,8 +223,8 @@
   },
   "active": "3aa707ca82afce23",
   "lastOpenFiles": [
-    "index.md",
     "98-Private/文件夹1/文件夹3/笔记66.md",
+    "index.md",
     "98-Private/文件夹1/文件夹3",
     "99-关联树/未命名.md",
     "99-关联树/未命名",

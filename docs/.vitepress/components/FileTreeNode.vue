@@ -12,11 +12,21 @@ const emit = defineEmits<{
   (e: 'select', node: PrivateFile): void
 }>()
 
-// 默认展开所有文件夹，或者你可以设为 false
-const isExpanded = ref(true)
+// 初始化时优先读取 node.expanded，如果没有定义则默认为 true
+const isExpanded = ref(props.node.expanded !== undefined ? props.node.expanded : true)
+
+// 监听外部数据变化 (例如自动定位时)
+import { watch } from 'vue'
+watch(() => props.node.expanded, (newVal) => {
+  if (newVal !== undefined) {
+    isExpanded.value = newVal
+  }
+})
 
 function toggle() {
   isExpanded.value = !isExpanded.value
+  // 同步回数据对象，保持状态一致
+  props.node.expanded = isExpanded.value
 }
 
 function onSelect(n: PrivateFile) {

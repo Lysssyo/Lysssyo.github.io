@@ -3,6 +3,11 @@ import { ref, watch, computed, onMounted } from 'vue'
 import MarkdownIt from 'markdown-it'
 import { privateStore, type PrivateFile } from '../store'
 import FileTreeNode from './FileTreeNode.vue'
+// 引入路由
+import { useRoute, useRouter } from 'vitepress'
+
+const route = useRoute()
+const router = useRouter()
 
 const password = ref('')
 const loading = ref(false)
@@ -261,6 +266,41 @@ async function unlock() {
       const tree = buildFileTree(realData.files)
       privateStore.token = password.value 
       privateStore.setData(tree)
+      
+      // 处理自动跳转
+      const targetPath = new URLSearchParams(window.location.search).get('target')
+      if (targetPath) {
+        let rawPath = decodeURIComponent(targetPath)
+        
+        // 1. 提取有效路径：截取 '98-Private/' 之后的部分
+        // 兼容不同的链接形式: /98-Private/..., ../../98-Private/...
+        const keyword = '98-Private/'
+        let cleanPath = ''
+        const idx = rawPath.indexOf(keyword)
+        if (idx !== -1) {
+          cleanPath = rawPath.substring(idx + keyword.length)
+        } else {
+          cleanPath = rawPath.replace(/^(\.\.\/)+/, '').replace(/^(\.\/)+/, '')
+        }
+
+        // 1.5 移除 URL 锚点 (例如 #section)
+        cleanPath = cleanPath.split('#')[0]
+
+        // 2. 修正扩展名：VitePress 链接通常是 .html，但仓库是 .md
+        cleanPath = cleanPath.replace(/\.html$/, '.md')
+
+        console.log('[Debug] 原始Target:', targetPath)
+        console.log('[Debug] 修正后Path:', cleanPath)
+        console.log('[Debug] 仓库文件示例:', realData.files.slice(0, 3).map(f => f.path))
+
+        // 递归查找并展开
+        const foundNode = findAndExpand(privateStore.fileList, cleanPath)
+        console.log('[Debug] 查找结果:', foundNode)
+        
+        if (foundNode) {
+          await selectFile(foundNode)
+        }
+      }
     } else {
       throw new Error('返回数据格式不对，找不到 files 字段')
     }
@@ -270,6 +310,27 @@ async function unlock() {
   } finally {
     loading.value = false
   }
+}
+
+// 递归查找文件节点，并设置路径上所有父节点的 expanded = true
+function findAndExpand(nodes: PrivateFile[], targetPath: string): PrivateFile | null {
+  for (const node of nodes) {
+    // 检查是否匹配：全路径匹配 或 后缀匹配
+    // GitHub API 返回的 path 可能是全路径，我们尽量宽松匹配
+    if (node.type === 'file' && (node.path === targetPath || node.path.endsWith(targetPath))) {
+      return node
+    }
+    
+    if (node.type === 'dir' && node.children) {
+      const found = findAndExpand(node.children, targetPath)
+      if (found) {
+        // 如果子节点被找到了，说明当前节点是父级路径的一部分，需要展开
+        node.expanded = true
+        return found
+      }
+    }
+  }
+  return null
 }
 
 async function selectFile(file: PrivateFile) {

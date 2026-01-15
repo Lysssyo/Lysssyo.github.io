@@ -6,6 +6,7 @@ export interface PrivateFile {
   type: 'file' | 'dir'
   content?: string // mocked content
   children?: PrivateFile[]
+  expanded?: boolean // 新增：控制文件夹展开状态
 }
 
 export const privateStore = reactive({
