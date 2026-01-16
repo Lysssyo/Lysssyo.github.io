@@ -107,7 +107,7 @@ onUnmounted(() => {
 <template>
   <div 
     class="ptr-container" 
-    :style="{ transform: `translateY(${pullY}px)` }"
+    :style="pullY > 0 ? { transform: `translateY(${pullY}px)` } : {}"
     :class="{ 'ptr-transition': !isDragging }"
   >
     <!-- 下拉指示器 -->
