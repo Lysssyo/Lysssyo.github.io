@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "chat.md",
+                "file": "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "chat"
+              "title": "010-cozeLoopStartup"
             }
           },
           {
@@ -108,13 +108,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "chat.md",
+                "file": "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "chat 的大纲"
+              "title": "010-cozeLoopStartup 的大纲"
             }
           },
           {
@@ -222,19 +222,19 @@
   },
   "active": "d5d83dabb5ab5429",
   "lastOpenFiles": [
+    "public/logo.svg",
     "public/pwa-512x512.png",
     "public/pwa-192x192.png",
-    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
-    "chat.md",
+    "999-TODO.md",
+    "保险箱.md",
     "index.md",
-    "public/logo.svg",
+    "chat.md",
+    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
     "public",
     "98-Private/密码串.md",
     "98-Private/文件夹1/笔记1.md",
-    "999-TODO.md",
     "01-场景设计/010-cozeLoop专项/000-TODO.md",
     "98-Private/文件夹1/文件夹3/笔记66.md",
-    "保险箱.md",
     "98-Private/文件夹1/文件夹3",
     "99-关联树/未命名.md",
     "99-关联树/未命名",
