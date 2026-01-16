@@ -27,6 +27,7 @@ const onTouchStart = (e: TouchEvent) => {
   const scrollableSelectors = [
     '.VPSidebar',      // 官方侧边栏
     '.vault-sidebar',  // 保险箱侧边栏
+    '.mobile-sidebar-toggle', // 保险箱悬浮按钮 (防止拖拽冲突)
     '.VPLocalNav',     // 移动端局部导航
     '.vp-code-group',  // 代码块组
     'pre'              // 原生代码块
