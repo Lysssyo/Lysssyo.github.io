@@ -17,10 +17,24 @@ let isDragging = false
 const isAtTop = () => window.scrollY <= 0
 
 const onTouchStart = (e: TouchEvent) => {
-  // 只有在页面顶部才允许下拉刷新
+  // 1. 只有在页面顶部才允许下拉刷新
   if (!isAtTop()) return
-  // 如果正在刷新中，忽略
+  // 2. 如果正在刷新中，忽略
   if (state.value === 'refreshing') return
+
+  // 3. 关键修复：如果触摸点在任何具有独立滚动的侧边栏或容器内，禁止下拉刷新
+  const target = e.target as HTMLElement
+  const scrollableSelectors = [
+    '.VPSidebar',      // 官方侧边栏
+    '.vault-sidebar',  // 保险箱侧边栏
+    '.VPLocalNav',     // 移动端局部导航
+    '.vp-code-group',  // 代码块组
+    'pre'              // 原生代码块
+  ]
+  
+  if (scrollableSelectors.some(selector => target.closest(selector))) {
+    return
+  }
 
   startY = e.touches[0].clientY
   isDragging = true
