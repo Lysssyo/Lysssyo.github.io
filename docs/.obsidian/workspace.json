@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
+                "file": "chat.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "010-cozeLoopStartup"
+              "title": "chat"
             }
           },
           {
@@ -108,13 +108,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
+                "file": "chat.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "010-cozeLoopStartup 的大纲"
+              "title": "chat 的大纲"
             }
           },
           {
@@ -222,11 +222,11 @@
   },
   "active": "d5d83dabb5ab5429",
   "lastOpenFiles": [
-    "chat.md",
-    "index.md",
-    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
     "public/pwa-512x512.png",
     "public/pwa-192x192.png",
+    "01-场景设计/010-cozeLoop专项/010-cozeLoopStartup.md",
+    "chat.md",
+    "index.md",
     "public/logo.svg",
     "public",
     "98-Private/密码串.md",
