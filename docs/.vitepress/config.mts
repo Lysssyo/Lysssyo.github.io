@@ -42,6 +42,7 @@ export default withMermaid(defineConfig({
   titleTemplate: false,
   description: "As the stack grows",
   head: [
+    ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
     ['link', { rel: 'icon', href: hamburgerDataUrl }],
     ['link', { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' }],
     ['link', { rel: 'apple-touch-icon', href: '/pwa-192x192.png' }],
@@ -76,6 +77,9 @@ export default withMermaid(defineConfig({
           short_name: 'KeithKB',
           description: 'Personal Knowledge Base powered by VitePress',
           theme_color: '#ffffff',
+          scope: '/',      // 围墙是整个网站
+          start_url: '/',  // 打开 App 第一眼看哪里
+          id: '/',         // App 的唯一标识符
           icons: [
             {
               src: 'pwa-192x192.png',
