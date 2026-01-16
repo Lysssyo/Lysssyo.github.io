@@ -16,8 +16,8 @@ const sidebarWidth = ref(250)
 const isResizing = ref(false)
 const isSidebarCollapsed = ref(window.innerWidth < 768)
 const sidebarRef = ref<HTMLElement | null>(null)
-// 按钮位置状态 (默认左上角)
-const btnPos = ref({ top: 12, left: 12 })
+// 按钮位置状态 (默认向下偏移 60px 以避开二级导航)
+const btnPos = ref({ top: 60, left: 16 })
 const isBtnDragging = ref(false)
 const pendingAnchor = ref('') // 待跳转的锚点
 
@@ -506,7 +506,9 @@ watch(renderedContent, () => {
   left: var(--vp-sidebar-width, 0);
   width: calc(100vw - var(--vp-sidebar-width, 0));
   
-  z-index: 15;
+  /* 【修改点 2】：提升层级 */
+  /* VitePress 的 LocalNav 层级通常是 20，我们将这里提升到 30 以覆盖它 */
+  z-index: 30;
   background: var(--vp-c-bg);
   border-top: 1px solid var(--vp-c-divider);
   border-left: 1px solid var(--vp-c-divider);
@@ -524,9 +526,9 @@ watch(renderedContent, () => {
     width: 100vw;
     border-left: none;
     
-    /* Use VitePress CSS variable for mobile local nav height */
-    top: calc(var(--vp-nav-height) + var(--vp-local-nav-height, 0px));
-    height: calc(100vh - var(--vp-nav-height) - var(--vp-local-nav-height, 0px));
+    /* 同样使用标准导航栏高度 */
+    top: var(--vp-nav-height);
+    height: calc(100vh - var(--vp-nav-height));
   }
 }
 
@@ -595,13 +597,15 @@ watch(renderedContent, () => {
   position: absolute;
   top: 12px;
   left: 12px;
-  z-index: 20;
+  /* 【修改点 4】：确保按钮层级最高 */
+  z-index: 100;
   background: var(--vp-c-bg);
   border: 1px solid var(--vp-c-divider);
   border-radius: 4px;
   padding: 6px 10px;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: background 0.2s, box-shadow 0.2s;
 }
 .sidebar-collapsed .mobile-sidebar-toggle {
   background: var(--vp-c-bg-alt);
@@ -638,6 +642,8 @@ watch(renderedContent, () => {
 .vault-header {
   padding: 16px;
   padding-left: 50px; /* 给 toggle 按钮留出空间 */
+  /* 【修改点 3】：增加顶部内边距 */
+  padding-top: 24px;
   border-bottom: 1px solid var(--vp-c-divider);
   font-weight: 600;
   color: var(--vp-c-text-1);

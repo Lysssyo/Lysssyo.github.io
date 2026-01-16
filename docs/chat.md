@@ -1,160 +1,140 @@
 ---
 date created: 2026-01-15 23:32:33
-date modified: 2026-01-15 23:34:49
+date modified: 2026-01-16 11:39:40
 ---
-将 VitePress 网站改造成 PWA（Progressive Web App）其实非常简单，主要依赖于 Vite 生态中强大的插件 **`vite-plugin-pwa`**。
+这个问题是因为 VitePress 的二级导航栏（通常是 `VPLocalNav`，显示面包屑或本页大纲的那个条）在某些布局下层级较高（z-index 约为 20），或者占据了页面流的高度，而你的保险箱是 `fixed` 定位的，默认层级 `15` 较低，且没有预留二级导航的高度。
 
-以下是保姆级的配置步骤，只需要 3 步即可完成：
+解决这个问题有两个核心点：
 
-### 第一步：安装插件
+1. **避让布局**：将按钮的初始位置下移，将侧边栏标题增加顶部间距。
+    
+2. **提升层级**：提高保险箱容器的 `z-index`，使其覆盖掉 VitePress 的二级导航栏（因为在保险箱全屏模式下，不需要看二级导航）。
+    
 
-在你的 VitePress 项目根目录下，运行以下命令安装插件：
+下面是修改后的代码，主要改动了 `script` 中的初始坐标和 `style` 中的层级与间距。
 
-Bash
+### 修改后的代码
+
+代码段
 
 ```
-npm install -D vite-plugin-pwa
-# 或者
-pnpm add -D vite-plugin-pwa
+<script setup lang="ts">
+import { ref, watch, computed, onMounted } from 'vue'
+// ... 其他 import 保持不变
+
+// ... (中间代码省略，直到 btnPos 定义处) ...
+
+// 【修改点 1】：调整按钮初始位置
+// 将 top 从 12 改为 60，避开顶部的二级导航栏高度
+const btnPos = ref({ top: 60, left: 16 })
+const isBtnDragging = ref(false)
+const pendingAnchor = ref('')
+
+// ... (initBtnDrag, toggleSidebar 等逻辑保持不变) ...
+
+// ... (后续所有 script 逻辑保持不变) ...
+</script>
+
+<template>
+  <div class="vault-wrapper">
+     <div v-else class="vault-ui" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
+      <button 
+        class="mobile-sidebar-toggle"
+        :style="{ top: btnPos.top + 'px', left: btnPos.left + 'px', cursor: isBtnDragging ? 'grabbing' : 'pointer' }"
+        @mousedown="initBtnDrag"
+        @touchstart="initBtnDrag"
+        title="切换文件列表 (可拖动)"
+      >
+        <span class="icon">📂</span>
+      </button>
+      
+      </div>
+  </div>
+</template>
+
+<style scoped>
+.vault-wrapper {
+  position: fixed;
+  top: var(--vp-nav-height);
+  right: 0;
+  bottom: 0;
+  left: var(--vp-sidebar-width, 0);
+  width: calc(100vw - var(--vp-sidebar-width, 0));
+  
+  /* 【修改点 2】：提升层级 */
+  /* VitePress 的 LocalNav 层级通常是 20，我们将这里提升到 30 以覆盖它 */
+  /* 但不要超过主导航栏 (通常是 50-60) */
+  z-index: 30; 
+  
+  background: var(--vp-c-bg);
+  border-top: 1px solid var(--vp-c-divider);
+  border-left: 1px solid var(--vp-c-divider);
+  border-radius: 0;
+  
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ... (中间样式保持不变) ... */
+
+.vault-header {
+  padding: 16px;
+  padding-left: 50px; 
+  /* 【修改点 3】：增加顶部内边距 */
+  /* 即使提升了 z-index，视觉上给顶部留一点呼吸感也是好的 */
+  padding-top: 24px; 
+  
+  border-bottom: 1px solid var(--vp-c-divider);
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+  
+  /* 防止标题本身被压缩 */
+  flex-shrink: 0;
+}
+
+/* ... (中间样式保持不变) ... */
+
+.mobile-sidebar-toggle {
+  position: absolute;
+  /* top 和 left 由内联样式控制，这里只控制层级 */
+  /* 【修改点 4】：确保按钮层级最高 */
+  z-index: 100; 
+  
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  
+  /* 增加一点过渡效果让拖拽结束时平滑一点，但拖拽中由 JS 控制 */
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+/* ... (其他样式保持不变) ... */
+</style>
 ```
 
-### 第二步：修改配置文件
+### 改动解析
 
-我们需要在 VitePress 的配置文件中引入这个插件。注意，VitePress 的配置本质上是 Vite 配置的超集，所以我们可以直接在 `vite` 字段下注入插件。
-
-打开 `.vitepress/config.mts` (或 `.js`/`.ts`)：
-
-TypeScript
-
-```
-import { defineConfig } from 'vitepress'
-import { VitePWA } from 'vite-plugin-pwa' // 1. 引入插件
-
-export default defineConfig({
-  // ... 你的其他 VitePress 配置 ...
-
-  // 2. 在这里配置 Vite 插件
-  vite: {
-    plugins: [
-      VitePWA({
-        // 核心配置：自动更新模式
-        // 'autoUpdate' = 发现新版本自动接管，简单省事（推荐文档类网站使用）
-        // 'prompt' = 弹窗提示用户“有新内容，点击刷新”，体验更好但需要写 UI 组件，我想要prompt模式
-        registerType: 'prompt', 
+1. **`z-index: 30`**:
+    
+    - **原因**: VitePress 的二级导航栏（Local Nav）的 z-index 通常是 20。你之前的 `z-index: 15` 导致保险箱虽然是 fixed 定位，但还是渲染在了二级导航栏的**下层**。
         
-        // 注入模式
-        injectRegister: 'auto',
-
-        // 包含哪些静态资源需要被缓存
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
-
-        // PWA 的清单文件 (Manifest) 配置
-        // 手机安装 App 后看到的图标、名字都由这里决定
-        manifest: {
-          name: '我的知识库',
-          short_name: 'Knowledge',
-          description: '基于 VitePress 构建的个人知识库 PWA',
-          theme_color: '#ffffff',
-          icons: [
-            {
-              src: 'pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
-        },
-
-        // Service Worker 配置 (缓存策略)
-        workbox: {
-          // 匹配所有这些扩展名的文件进行离线缓存
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
-        }
-      })
-    ]
-  }
-})
-```
-
-### 第三步：准备图标 (重要)
-
-PWA **必须**要有图标才能被识别为“可安装应用”。你需要准备至少两个图标文件，放在 `public` 文件夹下（如果没有 `public` 文件夹，就在项目根目录新建一个）。
-
-需要的资源：
-
-1. **pwa-192x192.png** (至少 192px)
-    
-2. **pwa-512x512.png** (至少 512px)
-    
-3. **favicon.ico** (网页图标)
-    
-
-> 💡 **小工具推荐**：你可以随便找张高清 Logo 图，用在线工具（如 [favicon.io](https://favicon.io/) 或 PWA Icon Generator）一键生成这些不同尺寸的图标。
-
-### 第四步：针对 iOS 的优化 (可选但推荐)
-
-iOS (Safari) 对 PWA Manifest 的支持不如 Android 完美，建议在 `config.mts` 的 `head` 里额外加几个 meta 标签，让它在 iPhone 上看起来更像原生 App。
-
-TypeScript
-
-```
-// .vitepress/config.mts
-export default defineConfig({
-  head: [
-    ['link', { rel: 'icon', href: '/favicon.ico' }],
-    // 专门为了 iOS 设置的图标
-    ['link', { rel: 'apple-touch-icon', href: '/pwa-192x192.png' }],
-    // 允许 iOS 全屏
-    ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }], 
-    ['meta', { name: 'apple-mobile-web-app-status-bar-style', content: 'black' }], 
-  ],
-  // ...
-})
-```
-
-### 第五步：构建与测试
-
-PWA 在开发模式 (`npm run dev`) 下默认是不生效的（为了调试方便），你需要**构建**后才能看到效果。
-
-1. 运行构建：
-    
-    Bash
-    
-    ```
-    npm run build
-    ```
-    
-2. 本地预览：
-    
-    Bash
-    
-    ```
-    npm run preview
-    ```
-    
-3. 打开浏览器（Chrome/Edge）：
-    
-    - 你应该会在地址栏右侧看到一个 **“安装图标”**（一个小电脑带个加号）。
+    - **效果**: 提升到 30 后，保险箱会直接“盖住”二级导航栏。这符合逻辑，因为既然进入了私有保险箱，就不需要看外层页面的目录了。
         
-    - 点击安装，它就会作为一个独立 App 弹出来。
+2. **`btnPos` 初始值**:
+    
+    - **原因**: 原代码是 `top: 12`。如果二级导航栏存在，它会占据顶部约 40px 的空间，按钮就被挡住了。
         
-    - 断开网络，刷新页面，如果还能访问，说明 **离线缓存** 成功了！
+    - **效果**: 改为 `top: 60`，强制按钮初始显示在更靠下的位置，避开可能的遮挡区域。
+        
+3. **`.vault-header` 的 `padding-top`**:
+    
+    - **原因**: 视觉修正。
+        
+    - **效果**: 给“远程文件库”几个字增加了一些顶部呼吸空间，防止显得太拥挤。
         
 
-### ⚠️ 关于你的“私有仓库”组件
-
-如果你按照我之前的建议做了“私有仓库”组件：
-
-- **Public 页面**：会被 Service Worker 自动缓存，离线可看。
-    
-- **Private 组件**：
-    
-    - VitePWA 的 `workbox` 配置只会缓存构建出来的静态文件。
-        
-    - 它**不会**缓存你组件里 `fetch` 请求的 GitHub API 数据。
-        
-    - 这正是我们想要的！**数据逻辑由你的 Vue 组件里的 LocalStorage 控制**，静态资源逻辑由 PWA 插件控制。两者互不冲突，完美共存。
+这样修改后，无论是否有二级导航栏，你的私有保险箱界面都应该能位于最上层，且按钮和标题都清晰可见。
