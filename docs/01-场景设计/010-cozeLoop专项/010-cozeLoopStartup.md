@@ -197,12 +197,10 @@ docker start coze-loop-nginx
 
 **“停止 dev 组合”指的是**把用 docker-compose.yml + docker-compose-dev.yml 起的这一组开发容器停掉并清理掉，不是关某一个服务。
 
+> [!TIP] 
 > 这些文件定义了 app、nginx、redis、mysql、clickhouse、minio、rocketmq 等一组容器和网络。
-> 
 > 执行 docker compose ... down 会依次停止并删除这些容器和自动创建的网络，但不会删镜像；默认也不会删卷，所以数据/静态资源卷会保留。
-> 
 > 加 -v（down -v）会连带删除它们用到的 named volume（例如静态资源的 coze-loop-nginx-data），这样下次 up 时会重新用镜像里的新前端填充卷。
-> 
 > 与 docker compose stop 相比，down 更彻底：stop 只是让容器变为 Exited，down 会直接删除容器，保证重新 up 时是干净的实例。
 
 **你怎么知道要删哪个卷？**
@@ -254,6 +252,7 @@ sudo systemctl stop firewalld
 docker logs coze-loop-rmq-init
 ```
 
+> [!TIP]
 > 这个服务用来初始化topic，如果topic不存在，可能是这个服务出了问题
 
 powershell设置代理，登录gemini
@@ -263,6 +262,7 @@ $env:http_proxy="http://127.0.0.1:33210"
 $env:https_proxy="http://127.0.0.1:33210"
 ```
 
+> [!TIP]
 > 验证是否成功： 输入 $env:http_proxy 查看
 
 TODO：

@@ -97,12 +97,15 @@ func Chain(mws ...Middleware) Middleware {
             // mws[i] 是当前中间件 (比如 Auth)
             // next 是它要包裹的内容 (比如 Core)
             // 执行后，next 就变大了 (变成了 Auth(Core))
-            next = mws[i](next)
+            next = mws[i](next) 
         }
         return next
     }
 }
 ```
+
+> [!TIP] 注意！！！
+> 注意！`next = mws[i](next)` 这里其实执行了`mws[i]`的逻辑！！但是，可以注意到，所有`mws`的内层都没有代码！！而是直接return，并且，return的这个函数，又是`mws`的入参
 
 ---
 
@@ -124,19 +127,10 @@ func main() {
 }
 ```
 
+![image.png](https://keith-knowledge-base.oss-cn-hongkong.aliyuncs.com/20260116141659265.png)
+
+
 ---
-
-更简化的：
-
-``` go
-func main(){
-	Chain(Logger)(SaveOrder)("ORDER_001")
-}
-```
-
-`Chain(Logger)` 返回一个新的方法，这个方法接受一个`OrderHandle`类型的参数，返回一个`OrderHandler`类型的参数。所以后面的`(SaveOrder)`就是在调用前面`Chain`返回的方法，并且把`(SaveOrder)`作为了参数（`Chain`方法返回值的参数）。所以，实际上`Chain(Logger)(SaveOrder)`返回值是`Logger(SaveOrder)`，即返回了一个`Logger`方法，并且是以`SaverOrder`作为参数。
-
-然后`Logger`方法的返回值也是一个方法，`Order_001`是作为`Logger`方法的返回值的那个方法的参数。
 
 ## 运行结果与执行流分析
 
