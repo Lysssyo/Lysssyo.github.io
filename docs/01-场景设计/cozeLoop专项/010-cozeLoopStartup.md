@@ -40,8 +40,7 @@ date modified: 2026-01-16 00:08:29
 
 ```bash
   cd apollo/release/deployment/docker-compose
-  docker compose -f docker-compose.yml -f docker-compose-local.yml --env-file .env \\
-    --profile redis --profile mysql --profile clickhouse --profile minio --profile rmq --profile faas up -d
+  docker compose -f docker-compose.yml -f docker-compose-local.yml --env-file .env --profile redis --profile mysql --profile clickhouse --profile minio --profile rmq --profile faas up -dofile faas up -d
   docker ps   # 确认 Healthy
   
   # 停止全部容器（需要时）
