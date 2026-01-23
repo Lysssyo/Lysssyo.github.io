@@ -47,10 +47,8 @@
   },
   "01-场景设计": "LiFolder",
   "02-中间件": "LiFolder",
-  "03-java": "LiFolder",
   "04-数据库": "LiFolder",
   "05-分布式": "LiFolder",
-  "06-golang": "LiFolder",
   "80-人工智能": "LiFolder",
   "81-量化": "LiFolder",
   "96-杂项": "LiFolder",
@@ -58,5 +56,7 @@
   "98-Private": "LiFolder",
   "99-关联树": "LiFolder",
   "96-杂项/010-建站": "LiFolder",
-  "01-场景设计/010-cozeLoop专项": "LiFolder"
+  "03-编程语言基础": "LiFolder",
+  "01-场景设计/cozeLoop专项": "LiFolder",
+  "01-场景设计/快手实习总结": "LiFolder"
 }
