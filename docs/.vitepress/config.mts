@@ -3,6 +3,7 @@ import { generateSidebar } from 'vitepress-sidebar'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import { VitePWA } from 'vite-plugin-pwa'
 import container from 'markdown-it-container'
+import taskLists from 'markdown-it-task-lists'
 import fs from 'fs'
 import path from 'path'
 
@@ -33,7 +34,7 @@ function getFirstLink(sidebar: any): string {
   return '/'
 }
 
-const firstLink = getFirstLink(sidebarConfig)
+const firstLink = '/001-guide'
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid(defineConfig({
@@ -137,6 +138,7 @@ export default withMermaid(defineConfig({
   },
   markdown: {
     config: (md) => {
+      md.use(taskLists)
       md.use(container, 'callout', {
         validate: (params) => params.trim().match(/^callout\s+(.*)$/),
         render: (tokens, idx) => {
