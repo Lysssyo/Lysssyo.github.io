@@ -1,5 +1,6 @@
 {
   "enabledCssSnippets": [
-    "code-no-wrap"
+    "code-no-wrap",
+    "fix-line-break"
   ]
 }

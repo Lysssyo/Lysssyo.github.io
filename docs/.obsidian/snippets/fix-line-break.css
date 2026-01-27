@@ -1,0 +1,21 @@
+/* --- 修复中文标点出现在行首（避头尾规则） --- */
+
+/* 针对阅读模式 (Reading View) */
+.markdown-preview-view {
+    line-break: strict; /* 关键：执行严格的换行规则，禁止标点在行首 */
+    word-break: normal; /* 保持正常的单词断行 */
+}
+
+/* 针对编辑/实时预览模式 (Live Preview) */
+.markdown-source-view .cm-content {
+    line-break: strict;
+    word-break: normal;
+}
+
+/* 可选：如果你希望文本两端对齐，这也能减少这种情况，但会调整字间距 */
+/*
+.markdown-preview-view p, 
+.markdown-source-view .cm-line {
+    text-align: justify; 
+} 
+*/
