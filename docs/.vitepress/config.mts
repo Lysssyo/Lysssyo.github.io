@@ -8,8 +8,8 @@ import fs from 'fs'
 import path from 'path'
 
 // 读取根目录的汉堡图片并转为 Base64
-const hamburgerSvg = fs.readFileSync(path.resolve(__dirname, '../../hamburger.svg'), 'utf-8')
-const hamburgerDataUrl = `data:image/svg+xml;base64,${Buffer.from(hamburgerSvg).toString('base64')}`
+const logoSvg = fs.readFileSync(path.resolve(__dirname, '../../logo.svg'), 'utf-8')
+const logoDataUrl = `data:image/svg+xml;base64,${Buffer.from(logoSvg).toString('base64')}`
 
 // 自动获取侧边栏配置
 const sidebarConfig = generateSidebar({
@@ -44,7 +44,7 @@ export default withMermaid(defineConfig({
   description: "As the stack grows",
   head: [
     ['link', { rel: 'manifest', href: '/manifest.webmanifest' }],
-    ['link', { rel: 'icon', href: hamburgerDataUrl }],
+    ['link', { rel: 'icon', href: logoDataUrl }],
     ['link', { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' }],
     ['link', { rel: 'apple-touch-icon', href: '/pwa-192x192.png' }],
     ['meta', { name: 'apple-mobile-web-app-capable', content: 'yes' }],
@@ -103,7 +103,7 @@ export default withMermaid(defineConfig({
 
   themeConfig: {
     siteTitle: 'Keith\'s Knowledge Base',
-    logo: hamburgerDataUrl,
+    logo: logoDataUrl,
     
     nav: [
       { text: 'Home', link: '/' },
