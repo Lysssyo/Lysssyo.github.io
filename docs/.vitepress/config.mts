@@ -15,7 +15,7 @@ const sidebarConfig = generateSidebar({
   documentRootPath: 'docs',
   useTitleFromFileHeading: true,
   collapsed: true,
-  excludeByGlobPattern: ['index.md', '.gitignore', '98-Private/**', 'chat.md','保险箱.md']
+  excludeByGlobPattern: ['index.md', '.gitignore', '98-Private/**', 'chat.md','保险箱.md', 'guide.md','001-guide.md']
 })
 
 // 递归查找侧边栏中的第一个有效链接

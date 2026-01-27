@@ -195,9 +195,12 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "b39c9cab4c4d92a5",
+  "active": "2d98201e78a4bf7e",
   "lastOpenFiles": [
+    "98-Private/999-随手记.md",
+    "保险箱.md",
     "999-TODO.md",
+    "98-Private/今日任务.md",
     "001-guide.md",
     "01-场景设计/02-快手实习总结/快手实现总结.md",
     "01-场景设计/限流算法.md",
@@ -211,12 +214,9 @@
     "80-人工智能/MCP.md",
     "80-人工智能/010-机器学习.md",
     "98-Private/密码串.md",
-    "保险箱.md",
     "01-场景设计/01-cozeLoop专项/010-cozeLoopStartup.md",
-    "今日任务.md",
     "01-场景设计/01-cozeLoop专项/110-大模型调用结果解析.md",
     "01-场景设计/01-cozeLoop专项/070-实验调度.md",
-    "01-场景设计/01-cozeLoop专项/060-数据集版本控制.md",
-    "999-随手记.md"
+    "01-场景设计/01-cozeLoop专项/060-数据集版本控制.md"
   ]
 }
