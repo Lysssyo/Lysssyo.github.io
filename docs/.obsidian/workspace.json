@@ -4,24 +4,67 @@
     "type": "split",
     "children": [
       {
-        "id": "564006d3d62ee2da",
+        "id": "90963291c9dacf50",
         "type": "tabs",
         "children": [
+          {
+            "id": "54196d60502e6a36",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "02-中间件/ES/ES_解析/Elasticsearch 读写链路.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Elasticsearch 读写链路"
+            }
+          },
+          {
+            "id": "3f4ed0229efe8dab",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "02-中间件/ES/ES_解析/KD树、KDB树、BKD树.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "KD树、KDB树、BKD树"
+            }
+          },
+          {
+            "id": "1df2a8b6d2caa9a9",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "98-Private/prompt/优化文档样式.md",
+                "mode": "source",
+                "source": true
+              },
+              "icon": "lucide-file",
+              "title": "优化文档样式"
+            }
+          },
           {
             "id": "2d98201e78a4bf7e",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "001-guide.md",
+                "file": "02-中间件/ES/020-存储与读写原理.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "001-guide"
+              "title": "020-存储与读写原理"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -156,13 +199,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "001-guide.md",
+                "file": "02-中间件/ES/ES_解析/KD树、KDB树、BKD树.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "001-guide 的大纲"
+              "title": "KD树、KDB树、BKD树 的大纲"
             }
           },
           {
@@ -195,28 +238,37 @@
       "terminal:Open terminal": false
     }
   },
-  "active": "2d98201e78a4bf7e",
+  "active": "b39c9cab4c4d92a5",
   "lastOpenFiles": [
-    "98-Private/999-随手记.md",
-    "保险箱.md",
-    "999-TODO.md",
-    "98-Private/今日任务.md",
+    "98-Private/prompt/优化文档样式.md",
+    "02-中间件/ES/ES_解析/KD树、KDB树、BKD树.md",
+    "98-Private/prompt",
+    "98-Private/未命名.md",
+    "02-中间件/ES/020-存储与读写原理.md",
+    "02-中间件/ES/ES_解析/Elasticsearch 读写链路.md",
+    "02-中间件/ES/ES_解析/Elasticsearch 核心数据结构.md",
+    "02-中间件/ES/ES_解析/分布式协同与一致性机制研究报告.md",
+    "02-中间件/ES/ES_内核深度解析_专题/04_读写链路_数据生命周期与治理.md",
     "001-guide.md",
-    "01-场景设计/02-快手实习总结/快手实现总结.md",
-    "01-场景设计/限流算法.md",
-    "01-场景设计/01-cozeLoop专项/080-限流机制.md",
-    "index.md",
-    "未命名 2.md",
-    "未命名 1.md",
-    "未命名.md",
-    "80-人工智能/Function Call.md",
-    "80-人工智能/Skill.md",
-    "80-人工智能/MCP.md",
-    "80-人工智能/010-机器学习.md",
-    "98-Private/密码串.md",
-    "01-场景设计/01-cozeLoop专项/010-cozeLoopStartup.md",
+    "02-中间件/ES/ES_内核深度解析_专题/02_微观存储_倒排索引与压缩算法.md",
+    "02-中间件/ES/ES_内核深度解析_专题/01_宏观架构_分布式协同与一致性.md",
+    "02-中间件/ES/ES_内核深度解析_专题/03_现代特性_数值空间与向量检索.md",
+    "02-中间件/ES/010-物理与逻辑架构.md",
     "01-场景设计/01-cozeLoop专项/110-大模型调用结果解析.md",
-    "01-场景设计/01-cozeLoop专项/070-实验调度.md",
-    "01-场景设计/01-cozeLoop专项/060-数据集版本控制.md"
+    "02-中间件/ES/ES_解析",
+    "02-中间件/ES/ES_内核深度解析_专题/05_架构决策_技术选型与对比.md",
+    "02-中间件/ES/Elasticsearch 架构深度剖析报告：从分布式集群宏观视角到 Lucene 微观存储机制.md",
+    "02-中间件/ES/Elasticsearch 内核架构与底层数据结构深度解析报告.md",
+    "02-中间件/ES/Elasticsearch_深度架构与内核原理全解.md",
+    "02-中间件/ES/ES_内核深度解析_专题",
+    "02-中间件/ES/050-doc_values详解.md",
+    "02-中间件/MQ/020-MQ架构.md",
+    "02-中间件/ES/060-ES实践.md",
+    "index.md",
+    "03-编程语言基础/pyhton/基础语法.md",
+    "98-Private/999-随手记.md",
+    "98-Private/简历.md",
+    "98-Private/今日任务.md",
+    "98-Private/简历相关"
   ]
 }
