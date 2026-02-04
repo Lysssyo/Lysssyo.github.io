@@ -60,5 +60,7 @@
   "96-杂项/010-建站": "LiFolder",
   "03-编程语言基础": "LiFolder",
   "01-场景设计/01-cozeLoop专项": "LiFolder",
-  "001-guide.md": "LiAtom"
+  "001-guide.md": "LiAtom",
+  "02-中间件/Elasticsearch/030-段合并.md": "LiFile",
+  "02-中间件/ClickHouse": "LiFolder"
 }
