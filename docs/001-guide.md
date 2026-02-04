@@ -9,7 +9,7 @@ Welcome Back!
 ## Updated Recently
 
 - 2026年2月3日：整理 ES 核心数据结构 [010-Elasticsearch 核心数据结构](02-中间件/Elasticsearch/010-Elasticsearch%20核心数据结构.md)
-- 2026年1月28日：基于 Gemini Deep Research 和 Gemini 学习辅导 构建的报告 [010-物理与逻辑架构](02-中间件/ES/010-物理与逻辑架构.md)
+- 2026年1月28日：~~基于 Gemini Deep Research 和 Gemini 学习辅导 构建的报告~~（废弃）
 - 2026年1月27日：基于 Gemini Deep Research 构建的报告 [Skill](80-人工智能/Skill.md)
 - 2026年1月27日：基于 Gemini Deep Research 构建的报告 [MCP](80-人工智能/MCP.md)
 - 2026年1月26日：Function Call demo [Function Call](80-人工智能/Function%20Call.md)
