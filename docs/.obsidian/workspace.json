@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "04-中间件/ClickHouse/010-ClickHouse 核心数据结构.md",
+                "file": "01-计算机基础/computer network/搭建高可用VPN.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "010-ClickHouse 核心数据结构"
+              "title": "搭建高可用VPN"
             }
           }
         ]
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "04-中间件/ClickHouse/010-ClickHouse 核心数据结构.md",
+                "file": "01-计算机基础/computer network/搭建高可用VPN.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "010-ClickHouse 核心数据结构 的大纲"
+              "title": "搭建高可用VPN 的大纲"
             }
           },
           {
@@ -198,10 +198,11 @@
   },
   "active": "19b636efbfac436e",
   "lastOpenFiles": [
-    "97-运动健身/时间表.md",
-    "04-中间件/ClickHouse/010-ClickHouse 核心数据结构.md",
-    "04-中间件/Elasticsearch/010-Elasticsearch 核心数据结构.md",
     "().md",
+    "01-计算机基础/computer network/搭建高可用VPN.md",
+    "04-中间件/ClickHouse/010-ClickHouse 核心数据结构.md",
+    "97-运动健身/时间表.md",
+    "04-中间件/Elasticsearch/010-Elasticsearch 核心数据结构.md",
     "001-guide.md",
     "04-中间件/Elasticsearch/040-Elasticsearch 读写链路.md",
     "01-计算机基础/computer network",
@@ -231,7 +232,6 @@
     "02-中间件/ES/ES_内核深度解析_专题/05_架构决策_技术选型与对比.md",
     "02-中间件/ES/Elasticsearch 架构深度剖析报告：从分布式集群宏观视角到 Lucene 微观存储机制.md",
     "02-中间件/ES/Elasticsearch 内核架构与底层数据结构深度解析报告.md",
-    "02-中间件/ES/Elasticsearch_深度架构与内核原理全解.md",
     "02-中间件/ES/ES_内核深度解析_专题",
     "98-Private/简历相关"
   ]
