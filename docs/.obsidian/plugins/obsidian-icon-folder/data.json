@@ -47,9 +47,6 @@
     "debugMode": false,
     "useInternalPlugins": false
   },
-  "01-场景设计": "LiFolder",
-  "02-中间件": "LiFolder",
-  "04-数据库": "LiFolder",
   "05-分布式": "LiFolder",
   "80-人工智能": "LiFolder",
   "81-量化": "LiFolder",
@@ -58,9 +55,12 @@
   "98-Private": "LiFolder",
   "99-关联树": "LiFolder",
   "96-杂项/010-建站": "LiFolder",
-  "03-编程语言基础": "LiFolder",
-  "01-场景设计/01-cozeLoop专项": "LiFolder",
   "001-guide.md": "LiAtom",
-  "02-中间件/Elasticsearch/030-段合并.md": "LiFile",
-  "02-中间件/ClickHouse": "LiFolder"
+  "02-编程语言基础": "LiFolder",
+  "03-数据库": "LiFolder",
+  "04-中间件": "LiFolder",
+  "04-中间件/ClickHouse": "LiFolder",
+  "04-中间件/Elasticsearch/030-段合并.md": "LiFile",
+  "06-场景设计": "LiFolder",
+  "06-场景设计/01-cozeLoop专项": "LiFolder"
 }
