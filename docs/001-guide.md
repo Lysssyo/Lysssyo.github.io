@@ -8,6 +8,7 @@ Welcome Back!
 
 ## Updated Recently
 
+- 2026年2月5日：过 python 基础语法 [基础语法](02-编程语言基础/pyhton/基础语法.md)
 - 2026年2月4日：整理 ClickHouse 核心数据结构 [010-ClickHouse 核心数据结构](04-中间件/ClickHouse/010-ClickHouse%20核心数据结构.md)
 - 2026年2月3日：整理 Elasticsearch 核心数据结构 [010-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/010-Elasticsearch%20核心数据结构.md)
 - 2026年1月28日：~~基于 Gemini Deep Research 和 Gemini 学习辅导 构建的报告~~（废弃）
@@ -32,7 +33,8 @@ Welcome Back!
 - [ ] Apollo（coze-loop）实验调度总结，内化
 - [ ] 整理简历实习部分，形成文档（在上面的TODO以及前期基础上补充，链接）
 - [ ] 整理简历开源部分，形成文档
-- [ ] 过Python语法
+- [x] 过 Python 语法
+- [ ] 整理 Python 环境相关的文档
 - [ ] 整理`daily-news-report`的文档
 - [ ] SQL 里的悲观锁： `SELECT * xxx FOR UPDATE;` 探讨
 

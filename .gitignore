@@ -20,3 +20,5 @@ yarn-debug.log*
 pnpm-debug.log*
 
 docs/98-Private/
+
+docs/.obsidian/workspace.json
