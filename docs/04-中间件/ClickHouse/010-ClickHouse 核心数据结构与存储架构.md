@@ -1,10 +1,13 @@
-# ClickHouse 核心数据结构与存储架构深度研究报告
+# ClickHouse 核心数据结构与存储架构
 
 ## 1. 引言：分析型数据库的架构演进与 ClickHouse 的定位
 
 在海量数据实时分析（OLAP）领域，ClickHouse 凭借其卓越的查询性能和极高的数据吞吐能力，已成为事实上的行业标准之一。不同于传统的事务型数据库（OLTP）依赖于 B+ 树和行式存储来保障事务的原子性（ACID），ClickHouse 的核心设计理念完全围绕着“读取速度”与“写入吞吐”展开。其架构的基石在于**列式存储（Column-Oriented Storage）** 与 **向量化执行（Vectorized Execution）** 的深度结合。
 
 本报告旨在从底层原理出发，详尽剖析 ClickHouse 的核心数据结构。我们将深入文件系统的二进制层面，解析 `MergeTree` 存储引擎的物理布局；深入内存的 C++ 类层次结构，探讨 `IColumn` 接口与 `PaddedPODArray` 如何配合 SIMD 指令集实现纳秒级的数据处理；并全面分析从稀疏索引到跳数索引（Skipping Indices）的剪枝逻辑。通过对 `.bin` 数据文件、`.mrk` 标记文件以及 `primary.idx` 主键索引文件的交互机制进行解构，本报告将揭示 ClickHouse 如何在千亿级数据规模下实现毫秒级响应的根本原因。
+
+> [!TIP] ClickHouse 核心哲学
+> “写快，读通过合并来变快”
 
 ---
 
@@ -29,6 +32,9 @@ ClickHouse 的存储层不仅仅是数据的持久化容器，更是查询优化
 
 分片是 ClickHouse 数据存储的原子物理单元。任何写入操作（INSERT）都不会直接修改现有文件，而是**生成一个新的分片目录**。这种**不可变（Immutable）** 设计消除了写入时的锁竞争，极大地提升了并发写入性能。
 
+> [!IMPORTANT] 这点非常重要
+> **每一次 INSERT 都是生成一个新的目录**
+
 **分片命名规范深度解析：**
 
 一个典型的分片目录名称如 `20240101_1_1_0`，其格式为 `PartitionID_MinBlockNum_MaxBlockNum_Level`。
@@ -52,6 +58,133 @@ ClickHouse 的存储层不仅仅是数据的持久化容器，更是查询优化
 > 	- 新文件的 **MaxBlock** 取自来源文件的最大值（即 2）。
 > 	- **Level** 升级（0 -> 1），表示它已经经过了一次进化。
 > 3. **最终结果**：生成新目录 `20240101_1_2_1`（翻译：我包含了从第 1 次到第 2 次写入的所有数据）。旧目录 `20240101_1_1_0` 和 `20240101_2_2_0` 会被标记为非激活，稍后被物理删除。
+
+假设有如下表结构：
+
+```sql
+CREATE TABLE IF NOT EXISTS expt_turn_result_filter  
+(  
+    `space_id` String,  
+    `expt_id` String,  
+    `item_id` String,  
+    `item_idx` Int32,  
+    `turn_id` String,  
+    `status` Int32,  
+    `eval_target_data` Map(String, String),  
+    `evaluator_score` Map(String, Float64),  
+    `annotation_float` Map(String, Float64),  
+    `annotation_bool` Map(String, Int8),  
+    `annotation_string` Map(String, String),  
+    `evaluator_score_corrected` Int32,  
+    `eval_set_version_id` String,  
+    `created_date` Date,  
+    `created_at` DateTime,  
+    `updated_at` DateTime,  
+    INDEX idx_space_id space_id TYPE bloom_filter() GRANULARITY 1,  
+    INDEX idx_expt_id expt_id TYPE bloom_filter() GRANULARITY 1,  
+    INDEX idx_item_id item_id TYPE bloom_filter() GRANULARITY 1,  
+    INDEX idx_turn_id turn_id TYPE bloom_filter() GRANULARITY 1  
+    )  
+    ENGINE = ReplacingMergeTree(updated_at)  
+    PARTITION BY created_date  
+    ORDER BY (expt_id, item_id, turn_id)  
+    SETTINGS index_granularity = 8192;
+```
+
+即按照 `create_time` 分片，同时主键是 `expt_id, item_id, turn_id` ，即按照 `expt_id, item_id, turn_id` 排序。
+
+示例：
+
+假设 `created_date` 都是同一天（在同一个分区内），写入过程如下：
+
+1. 写入 expt_id = 1
+
+	- ClickHouse 收到数据，在内存中排序。
+	    
+	- **落盘**：生成一个物理目录（Data Part），我们叫它 `Part_1`。
+	    
+	- **Part_1 内容**：`[1, 1, 1...]` (内部是有序的)。
+    
+
+2. 写入 expt_id = 3
+
+	- ClickHouse **完全不理会** `Part_1`，它不会去打开 `Part_1` 修改内容。
+	    
+	- **落盘**：生成一个新的目录，叫 `Part_2`。
+	    
+	- **Part_2 内容**：`[3, 3, 3...]`。
+	    
+
+3. 写入 expt_id = 2 (迟到的中间数据)
+
+	- ClickHouse 依然**不理会**前两个文件夹。
+	    
+	- **落盘**：生成一个新的目录，叫 `Part_3`。
+	    
+	- **Part_3 内容**：`[2, 2, 2...]`。
+	    
+
+**此时磁盘上的状态：** 存在三个独立的文件夹（Data Parts），每一个独立的文件夹都有对应的 `.bin`,， `mrk` 以及 `idx` ，它们物理上并列存在，互不干扰。
+
+```
+/data/table/
+  ├── Part_1_1_0/  (里面存着 expt_id=1)
+  ├── Part_2_2_0/  (里面存着 expt_id=3)
+  └── Part_3_3_0/  (里面存着 expt_id=2)
+```
+
+那么当我要查询的时候，例如查询 `SELECT * FROM table WHERE expt_id = 2` 。ClickHouse 并不假设数据是有序的（因为在 Part 级别是乱序的），它会执行以下流程：
+
+1. **列出名单**：系统先看一眼文件系统，发现当前有 3 个活跃的 Data Part（目录）。
+    
+2. **加载索引**：把这 3 个目录里的 `primary.idx` 全部调入内存（通常它们常驻内存）。
+    
+3. **逐个盘问**：
+    
+    - **问 Part 1 (expt_id=1)**：
+        
+        - 查它的 `idx`：范围是 `[1, 1]`。
+            
+        - 判断：包含 `2` 吗？**不包含。**
+            
+        - 动作：**直接忽略整个 Part 1**（Pruning）。
+            
+    - **问 Part 2 (expt_id=3)**：
+        
+        - 查它的 `idx`：范围是 `[3, 3]`。
+            
+        - 判断：包含 `2` 吗？**不包含。**
+            
+        - 动作：**直接忽略整个 Part 2**。
+            
+    - **问 Part 3 (expt_id=2)**：
+        
+        - 查它的 `idx`：范围是 `[2, 2]`。
+            
+        - 判断：包含 `2` 吗？**包含！**
+            
+        - 动作：**深入读取** Part 3 的 `.mrk` 和 `.bin`。
+
+**如果我有 1000 次写入，生成了 1000 个目录，难道要查 1000 次索引吗？**
+
+**是的，要查 1000 次。**
+
+这正是为什么 ClickHouse 官方文档反复强调：**“不要频繁进行小批量写入”** 的根本原因。
+
+- 如果你每秒写一次，一天生成 86400 个目录。
+    
+- 查询时，ClickHouse 就要循环遍历 86400 个 `primary.idx`。哪怕是内存操作，这也会带来显著的 CPU 开销（Read Amplification，读放大）。
+    
+
+这也是 **后台合并 (Merge)** 如此重要的原因：
+
+- 合并前：查 1000 个小索引。
+    
+- 合并后：查 1 个大索引。
+
+> [!TIP] Part 内部的稀疏索引是有序的
+> 例如刚刚的三个主键，`1,1,1`, `3,3,3`, `2,2,2`，本来在三个part里面。合并成一个part后，新的part的稀疏索引变为 `(1,1,1),(2,2,2),(3,3,3)`。
+
 #### 2.1.3 Wide 与 Compact 格式的抉择
 
 ClickHouse 的分片存储格式经历了演变，目前主要支持 `Wide` 和 `Compact` 两种模式，系统根据数据量自动切换。
@@ -493,7 +626,7 @@ graph TD
         subgraph Col_UserID ["Step 3: UserID 列 (必须扫描)"]
             U_Load["IO 读取: UserID.bin Block 0"]
             U_Decompress["CPU 解压 & 跳过 4096 字节"]
-            U_Start["📍 站在 Granule 1 起跑线<br>(当前值: 8500，因为Cranule1 的第一个ID的值为8500)"]
+            U_Start["📍 站在 Granule 1 起跑线，准备扫8192行<br>(当前值: 8500，Granule 的第一个ID的值为8500，每个Granule 8192行)"]
             
             U_Scan["⚡ 向量化扫描 (SIMD) ⚡<br>Index 0: 8500 != 10086<br>...<br>Index 1585: 10085 != 10086"]
             U_Found["🎯 发现目标!<br>Index 1586: 10086"]
@@ -692,99 +825,108 @@ graph TD
     - **中间十页**（完全包含）：整页整页地撕下来（不用看内容）。
         
     - **最后一页**（右边界）：撕掉下半部分。
-        
 
-
-## 3. 内存计算层核心：向量化数据结构与 IColumn 接口
-
-当数据从磁盘被读取并解压到内存后，ClickHouse 的执行引擎接管处理流程。为了最大化 CPU 指令流水线的利用率，ClickHouse 摒弃了传统的“火山模型”（Volcano Model，即逐行处理），全面采用**向量化执行模型**。这一层的核心在于 C++ 类 `IColumn` 及其衍生结构。
-
-### 3.1 IColumn 接口的多态性设计
-
-`IColumn` 是内存中列数据的基类接口。在 ClickHouse 的代码库中，几乎所有的计算函数（Function）和聚合函数（Aggregate Function）都通过这个接口与数据交互。
-
-- **数据抽象：** `IColumn` 不存储单一值，而是存储一整块（Block）数据，通常包含数千到数万行。
-    
-- **虚函数平摊成本：** 虽然 `IColumn` 依赖虚函数（Virtual Functions）来实现多态（如 `filter`, `permute`, `cut`），但由于每次调用处理的是成千上万行数据，虚函数调用的开销被平摊到几乎可以忽略不计的程度 。
-    
-- **不可变性原则：** 大多数 `IColumn` 的操作是不可变的。例如，`filter` 操作不会修改原列，而是返回一个新的、经过过滤的列对象。这简化了内存管理，并与写入时的不可变性思想一脉相承 。
-    
-
-### 3.2 PaddedPODArray：SIMD 优化的极致体现
-
-对于数值类型（`UInt64`, `Float32`, `Date` 等），ClickHouse 使用 `ColumnVector<T>` 类，其底层容器并非 C++ 标准库的 `std::vector`，而是自定义的 `PaddedPODArray<T>`。这是 ClickHouse 性能优化的秘密武器之一。
-
-#### 3.2.1 尾部填充（Tail Padding）与内存安全
-
-现代 CPU 的 SIMD 指令（如 AVX2, AVX-512）一次能处理 256 位（32 字节）或 512 位（64 字节）的数据。如果在循环处理数组时，数组的长度不是 SIMD 寄存器宽度的整数倍，最后一次迭代可能会读取越界内存，导致段错误（Segmentation Fault）。
-
-- **传统做法：** 在循环中加入边界检查代码，处理尾部剩余元素。这会引入分支跳转，破坏 CPU 流水线。
-    
-- **ClickHouse 做法：** `PaddedPODArray` 在分配内存时，会在数组末尾额外分配 **15 字节**（或更多，取决于架构对齐要求）的填充空间。这允许 SIMD 指令安全地读取“越界”的数据（读取到填充区），而无需在核心循环中进行任何边界检查。虽然读取了垃圾数据，但后续逻辑会忽略这些值。这种设计让核心循环极其精简，能够完全跑满 CPU 的执行端口 。
-    
-
-#### 3.2.2 自定义内存分配器与 mremap
-
-`PaddedPODArray` 使用了 ClickHouse 自定义的内存分配器。与 `std::allocator` 相比，它支持 Linux 特有的 `mremap` 系统调用。
-
-- **零拷贝扩容：** 当一个大数组（例如几百 MB）需要扩容时，传统的 `realloc` 可能会分配新内存块并执行昂贵的 `memcpy`。而 `mremap` 可以通过修改页表映射，将物理内存重新映射到新的虚拟地址空间，从而避免数据的物理拷贝。这在处理大规模聚合（如 `GROUP BY` 产生巨大的中间状态）时，显著降低了内存带宽压力和延迟 。
-    
-
-### 3.3 复杂类型的内存布局
-
-ClickHouse 对复杂类型的处理同样遵循列式和向量化原则。
-
-#### 3.3.1 ColumnString 的双数组结构
-
-`String` 类型并非存储为 `std::vector<std::string>`（这种结构会导致严重的缓存未命中和指针跳转）。ClickHouse 的 `ColumnString` 由两个独立的 `PaddedPODArray` 组成：
-
-1. **Chars (UInt8)**：存储所有字符串拼接后的字节序列，以 `null` 结尾。
-    
-2. **Offsets (UInt64)**：存储每个字符串在 `Chars` 数组中的结束偏移量。 这种结构使得许多字符串操作可以转化为对 `Offsets` 数组的数值运算。例如，计算字符串长度只需对 `Offsets` 数组执行相邻元素相减（SIMD 优化），完全不需要扫描实际的字符字节 。
-    
-
-#### 3.3.2 ColumnNullable 的掩码机制
-
-`Nullable(T)` 类型在内存中由两部分组成：
-
-1. **Nested Column (T)**：存储实际值。对于 NULL 的行，这里存储一个默认值（如 0 或空字符串）。
-    
-2. **Null Map (ColumnUInt8)**：一个字节数组，`1` 表示 NULL，`0` 表示非 NULL。 这种分离设计允许计算引擎先忽略 NULL 状态，对 Nested Column 进行全量的 SIMD 运算，最后再应用 Null Map 进行结果修正。这比在运算过程中逐个检查 NULL 值要快得多 。
-    
-
-#### 3.3.3 ColumnConst 的虚拟化
-
-当查询包含常量表达式（如 `SELECT count() * 10`）时，ClickHouse 使用 `ColumnConst`。它不实际存储 N 行数据，而是只存储一个标量值，但在接口上伪装成 N 行。执行引擎会对 `ColumnConst` 进行特殊路径优化，直接使用标量运算而非向量运算，极大节省了内存带宽 。
 
 ---
 
-## 4. 索引进阶：跳数索引与二级索引结构
+## 3. 索引进阶：跳数索引与二级索引结构
 
 虽然稀疏主键索引极其高效，但它只能加速基于主键前缀（Prefix）的查询。对于非主键列的过滤查询，ClickHouse 引入了**数据跳数索引（Data Skipping Indices）**。
 
-### 4.1 跳数索引的聚合原理
+### 3.1 跳数索引的聚合原理
 
-跳数索引是一种轻量级的二级索引。它不索引每一行，而是基于**颗粒度（Granule）**的倍数进行聚合。
+跳数索引是一种轻量级的二级索引。它不索引每一行，而是基于**颗粒度（Granule）** 的倍数进行聚合。
 
 - **Granularity N：** 定义跳数索引时指定的 `GRANULARITY N` 表示每 $N$ 个主表颗粒度生成一个索引条目。例如，如果主表颗粒度是 8192 行，索引粒度为 4，则跳数索引每 $8192 \times 4 = 32768$ 行生成一个摘要值。
     
 - **文件结构：** 跳数索引生成 `skp_idx_{name}.idx`（存储摘要值）和 `skp_idx_{name}.mrk2`（存储偏移量）。其读取逻辑与主键索引类似，先查索引确定是否需要读取对应的数据块 。
     
 
-### 4.2 核心跳数索引类型详解
+### 3.2 核心跳数索引类型详解
 
-#### 4.2.1 MinMax 索引
+#### 3.2.1 MinMax 索引
 
 这是最简单也最常用的跳数索引。它记录每个块内列值的最小值和最大值。
 
 - **适用场景：** 针对值局部有序或具有聚簇趋势的列（如时间戳、自增 ID）。
     
-- **工作机制：** 查询条件 `WHERE col < 5`。如果某块的 `[min, max]` 区间为 ``，则该块与查询条件无交集，直接跳过。
+- **工作机制：** 查询条件 `WHERE col < 5`。如果某块的 `[min, max]` 区间为  `[1,2]`，则该块与查询条件无交集，直接跳过。
     
 - **优势：** 存储极小，计算极快。但在数据完全随机分布时失效 。
+
+示例：`SELECT * FROM table WHERE Score > 90`
+
+假设：`INDEX idx_score Score TYPE minmax GRANULARITY 2`
+
+这里的 `GRANULARITY 2` 意思是：**“每 2 个主表颗粒度（Granule），合并生成 1 个跳数索引条目。”**
+
+- **主表颗粒度：** 8192 行。
+    
+- **跳数索引覆盖范围：** $8192 \times 2 = 16384$ 行。
+
+```mermaid
+graph TD
+    %% 样式
+    classDef skip fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef primary fill:#fff9c4,stroke:#fbc02d;
+    classDef data fill:#e0f2f1,stroke:#00695c;
+
+    subgraph SkipLevel ["跳数索引层 (GRANULARITY = 2)"]
+        S0["Skip Block #0<br>覆盖行: 0~16383<br>MinMax: [10, 85]"]
+        S1["Skip Block #1<br>覆盖行: 16384~32767<br>MinMax: [5, 100]"]
+        class S0,S1 skip
+    end
+
+    subgraph PrimaryLevel ["主表颗粒度层 (GRANULARITY = 1)"]
+        direction TB
+        G0["Granule 0 (0~8191)<br>Score: 10...50"]
+        G1["Granule 1 (8192~16383)<br>Score: 60...85"]
+        
+        G2["Granule 2 (16384~24575)<br>Score: 5...20"]
+        G3["Granule 3 (24576~32767)<br>Score: 92...100"]
+        
+        class G0,G1,G2,G3 primary
+    end
+
+    %% 聚合关系
+    S0 -- "摘要自" --> G0 & G1
+    S1 -- "摘要自" --> G2 & G3
+```
+
+当执行查询的时候：
+
+ClickHouse 会先检查跳数索引文件（`skp_idx_score.idx`），做第一轮快速筛选。
+
+**Step 1: 检查 Skip Block #0**
+
+- **范围：** `[10, 85]`
+    
+- **条件：** `> 90`
+    
+- **判断：** 最大值 85 都没超过 90，这里面会有我想要的数据吗？**绝不可能。**
+    
+- **动作：** **DROP (丢弃)**。
+    
+- **节省：** ClickHouse 直接标记 Granule 0 和 Granule 1 为“无需读取”。这两个颗粒度对应的 `.bin` 和 `.mrk` 文件完全不碰。
     
 
-#### 4.2.2 Set(N) 索引
+**Step 2: 检查 Skip Block #1**
+
+- **范围：** `[5, 100]`
+    
+- **条件：** `> 90`
+    
+- **判断：** 最大值 100 超过了 90，这里面可能有数据吗？**可能。**
+    
+- **动作：** **READ (保留)**。
+    
+- **后续：** 系统会去读取 Granule 2 和 Granule 3 对应的 `.mrk` 和 `.bin`，解压并进行具体的扫描。以扫描 Granule 2 为例，先从`.mrk`文件取出Granule 2的块偏移（第几个物理块）和块内偏移，然后从这里开始扫，一直扫完8192行
+    
+
+> [!TIP] 
+> 即便 Granule 2 (Max=20) 其实并没有大于 90 的数据，但因为它被“连坐”了（和 Granule 3 绑在一个 Skip Block 里），所以 Granule 2 也会被加载。这就是 `GRANULARITY` 设置过大的副作用——**粒度越粗，误判率越高。**
+
+#### 3.2.2 Set(N) 索引
 
 存储每个块内所有唯一值的集合，上限为 N。
 
@@ -795,9 +937,9 @@ ClickHouse 对复杂类型的处理同样遵循列式和向量化原则。
 - **局限：** 对于高基数列，Set 索引不仅占用空间大，而且极易因超过 N 而失效 。
     
 
-#### 4.2.3 Bloom Filter (布隆过滤器) 索引
+#### 3.2.3 Bloom Filter 索引
 
-利用布隆过滤器的数据结构，存储块内值的哈希位图。
+专门对付等值查询。利用布隆过滤器的数据结构，存储块内值的哈希位图。
 
 - **变体：**
     
@@ -810,7 +952,205 @@ ClickHouse 对复杂类型的处理同样遵循列式和向量化原则。
 - **概率特性：** 布隆过滤器具有“假阳性”（False Positive）特性：如果索引说“不存在”，则绝对不存在（安全跳过）；如果说“存在”，则可能不存在（必须读取数据块进行验证）。
     
 - **调优：** 需要权衡存储空间、哈希函数数量与误判率。误判率越低，索引越大 。
+
+- **核心应用场景：** 高基数（High Cardinality）的列，比如 `TraceID`、`OrderNo`、`URL` 或 `MessageContent`（MinMax 索引失效，因为 `TraceID` 是完全随机生成的 UUID，任何一个 Granule 的 MinMax 范围几乎都是 `[000... , fff...]`，包含了所有可能性，MinMax无法跳过任何的Granule）
+
+##### 3.2.3.1 原理
+
+Bloom Filter 是一个位数组（Bit Array）。
+
+- **写入时：** 把数据（如 "10086"）经过几个 Hash 函数算一下，把数组上对应的几个位置涂黑（置为 1）。
     
+- **查询时：** 把查询词（如 "10086"）也 Hash 算一下。
+    
+    - 如果算出来的几个位置**全是黑的** -> **可能存在**（Keep）。
+        
+    - 只要有一个位置**是白的** -> **绝对不存在**（Drop / Skip）。
+
+##### 3.2.3.2 示例
+
+假设我们有一个日志表，存储了无序的 `TraceID`。 我们设置 Granularity = 1（为了简化，假设每个颗粒度生成一个 BF 索引）。
+
+**数据状态：**
+
+- **Granule 0:** 包含 `id_a`, `id_b`
+    
+- **Granule 1:** 包含 `id_c`, `id_d`
+    
+
+**索引构建过程 (可视化)：**
+
+假设 Bloom Filter 长度为 8 bit，使用 2 个 Hash 函数。
+
+1. **处理 Granule 0:**
+    
+    - `id_a` -> Hash -> index 1, 4
+        
+    - `id_b` -> Hash -> index 4, 7
+        
+    - **Bloom Filter #0:** `[0, 1, 0, 0, 1, 0, 0, 1]` (位置 1,4,7 变黑)
+        
+2. **处理 Granule 1:**
+    
+    - `id_c` -> Hash -> index 2, 5
+        
+    - `id_d` -> Hash -> index 5, 0
+        
+    - **Bloom Filter #1:** `[1, 0, 1, 0, 0, 1, 0, 0]` (位置 0,2,5 变黑)
+
+**现在我们要查 `id_e`。**
+
+**Step 1: 计算指纹**
+
+- `id_e` -> Hash -> index **1, 5** (假设算出来是这两个位)
+    
+
+**Step 2: 拿着指纹去比对索引**
+
+- **比对 Bloom Filter #0 (`01001001`)**:
+    
+    - 我们需要位 **1** 和 位 **5** 都是 1。
+        
+    - 检查位 1：是 1 (Match)。
+        
+    - 检查位 5：是 0 (**Fail!**)。
+        
+    - **结论：** Granule 0 **绝对没有** `id_e`。**直接跳过 (SKIP)。**
+        
+- **比对 Bloom Filter #1 (`10100100`)**:
+    
+    - 我们需要位 **1** 和 位 **5** 都是 1。
+        
+    - 检查位 1：是 0 (**Fail!**)。
+        
+    - **结论：** Granule 1 **绝对没有** `id_e`。**直接跳过 (SKIP)。**
+        
+
+**结果：** 扫描了两个指纹，IO 读取量为 0。
+
+
+**`假如查询 WHERE TraceID = 'id_a'`**
+
+**Step 1: 计算指纹**
+
+- `id_a` -> Hash -> index **1, 4**
+    
+
+**Step 2: 比对**
+
+- **Bloom Filter #0 (`01001001`)**:
+    
+    - 位 1 是 1？Yes。
+        
+    - 位 4 是 1？Yes。
+        
+    - **结论：** **可能存在**。
+        
+    - **动作：** **读取** Granule 0 的 `.bin` 文件，解压并暴力扫描验证。
+
+```mermaid
+graph TD
+    %% 样式
+    classDef query fill:#f3e5f5,stroke:#7b1fa2,stroke-dasharray: 5 5;
+    classDef bf fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef action fill:#fff9c4,stroke:#fbc02d;
+    classDef disk fill:#e0f2f1,stroke:#00695c;
+    classDef drop fill:#ffcdd2,stroke:#c62828;
+
+    subgraph QueryPhase ["1. 查询指纹生成"]
+        Q["查询: TraceID = 'id_e'"]
+        HashCalc["Hash计算:<br>Need Bit 1 & Bit 5"]
+        class Q query
+    end
+
+    subgraph IndexPhase ["2. 索引比对 (skp_idx_bf.idx)"]
+        direction TB
+        
+        subgraph BF0 ["Block 0 (对应 G0)"]
+            Bits0["BitArray: 0 1 0 0 1 0 0 1<br>(Idx 1=1, Idx 5=0)"]
+            Check0["❌ 位 5 缺失"]
+        end
+
+        subgraph BF1 ["Block 1 (对应 G1)"]
+            Bits1["BitArray: 1 0 1 0 0 1 0 0<br>(Idx 1=0, Idx 5=1)"]
+            Check1["❌ 位 1 缺失"]
+        end
+        
+        class Bits0,Bits1 bf
+    end
+
+    subgraph Execution ["3. 执行决策"]
+        Skip0["G0: SKIP (不读盘)"]
+        Skip1["G1: SKIP (不读盘)"]
+        
+        class Skip0,Skip1 drop
+    end
+    
+    HashCalc --> Bits0 & Bits1
+    Check0 --> Skip0
+    Check1 --> Skip1
+```
+
+## 4. 内存计算层核心：向量化数据结构与 IColumn 接口
+
+当数据从磁盘被读取并解压到内存后，ClickHouse 的执行引擎接管处理流程。为了最大化 CPU 指令流水线的利用率，ClickHouse 摒弃了传统的“火山模型”（Volcano Model，即逐行处理），全面采用**向量化执行模型**。这一层的核心在于 C++ 类 `IColumn` 及其衍生结构。
+
+### 4.1 IColumn 接口的多态性设计
+
+`IColumn` 是内存中列数据的基类接口。在 ClickHouse 的代码库中，几乎所有的计算函数（Function）和聚合函数（Aggregate Function）都通过这个接口与数据交互。
+
+- **数据抽象：** `IColumn` 不存储单一值，而是存储一整块（Block）数据，通常包含数千到数万行。
+    
+- **虚函数平摊成本：** 虽然 `IColumn` 依赖虚函数（Virtual Functions）来实现多态（如 `filter`, `permute`, `cut`），但由于每次调用处理的是成千上万行数据，虚函数调用的开销被平摊到几乎可以忽略不计的程度 。
+    
+- **不可变性原则：** 大多数 `IColumn` 的操作是不可变的。例如，`filter` 操作不会修改原列，而是返回一个新的、经过过滤的列对象。这简化了内存管理，并与写入时的不可变性思想一脉相承 。
+    
+
+### 4.2 PaddedPODArray：SIMD 优化的极致体现
+
+对于数值类型（`UInt64`, `Float32`, `Date` 等），ClickHouse 使用 `ColumnVector<T>` 类，其底层容器并非 C++ 标准库的 `std::vector`，而是自定义的 `PaddedPODArray<T>`。这是 ClickHouse 性能优化的秘密武器之一。
+
+#### 4.2.1 尾部填充（Tail Padding）与内存安全
+
+现代 CPU 的 SIMD 指令（如 AVX2, AVX-512）一次能处理 256 位（32 字节）或 512 位（64 字节）的数据。如果在循环处理数组时，数组的长度不是 SIMD 寄存器宽度的整数倍，最后一次迭代可能会读取越界内存，导致段错误（Segmentation Fault）。
+
+- **传统做法：** 在循环中加入边界检查代码，处理尾部剩余元素。这会引入分支跳转，破坏 CPU 流水线。
+    
+- **ClickHouse 做法：** `PaddedPODArray` 在分配内存时，会在数组末尾额外分配 **15 字节**（或更多，取决于架构对齐要求）的填充空间。这允许 SIMD 指令安全地读取“越界”的数据（读取到填充区），而无需在核心循环中进行任何边界检查。虽然读取了垃圾数据，但后续逻辑会忽略这些值。这种设计让核心循环极其精简，能够完全跑满 CPU 的执行端口 。
+    
+
+#### 4.2.2 自定义内存分配器与 mremap
+
+`PaddedPODArray` 使用了 ClickHouse 自定义的内存分配器。与 `std::allocator` 相比，它支持 Linux 特有的 `mremap` 系统调用。
+
+- **零拷贝扩容：** 当一个大数组（例如几百 MB）需要扩容时，传统的 `realloc` 可能会分配新内存块并执行昂贵的 `memcpy`。而 `mremap` 可以通过修改页表映射，将物理内存重新映射到新的虚拟地址空间，从而避免数据的物理拷贝。这在处理大规模聚合（如 `GROUP BY` 产生巨大的中间状态）时，显著降低了内存带宽压力和延迟 。
+    
+
+### 4.3 复杂类型的内存布局
+
+ClickHouse 对复杂类型的处理同样遵循列式和向量化原则。
+
+#### 4.3.1 ColumnString 的双数组结构
+
+`String` 类型并非存储为 `std::vector<std::string>`（这种结构会导致严重的缓存未命中和指针跳转）。ClickHouse 的 `ColumnString` 由两个独立的 `PaddedPODArray` 组成：
+
+1. **Chars (UInt8)**：存储所有字符串拼接后的字节序列，以 `null` 结尾。
+    
+2. **Offsets (UInt64)**：存储每个字符串在 `Chars` 数组中的结束偏移量。 这种结构使得许多字符串操作可以转化为对 `Offsets` 数组的数值运算。例如，计算字符串长度只需对 `Offsets` 数组执行相邻元素相减（SIMD 优化），完全不需要扫描实际的字符字节 。
+    
+
+#### 4.3.2 ColumnNullable 的掩码机制
+
+`Nullable(T)` 类型在内存中由两部分组成：
+
+1. **Nested Column (T)**：存储实际值。对于 NULL 的行，这里存储一个默认值（如 0 或空字符串）。
+    
+2. **Null Map (ColumnUInt8)**：一个字节数组，`1` 表示 NULL，`0` 表示非 NULL。 这种分离设计允许计算引擎先忽略 NULL 状态，对 Nested Column 进行全量的 SIMD 运算，最后再应用 Null Map 进行结果修正。这比在运算过程中逐个检查 NULL 值要快得多 。
+    
+
+#### 4.3.3 ColumnConst 的虚拟化
+
+当查询包含常量表达式（如 `SELECT count() * 10`）时，ClickHouse 使用 `ColumnConst`。它不实际存储 N 行数据，而是只存储一个标量值，但在接口上伪装成 N 行。执行引擎会对 `ColumnConst` 进行特殊路径优化，直接使用标量运算而非向量运算，极大节省了内存带宽 。
 
 ---
 
@@ -903,5 +1243,3 @@ ClickHouse 之所以能在分析型数据库领域独占鳌头，并非仅仅依
 |**内存布局**|结构体数组 (AoS)|数组结构体 (SoA)|SoA 对 CPU 数据缓存 (D-Cache) 更友好|
 |**SIMD利用**|困难，需编译器复杂分析|天然支持，易于显式优化|吞吐量提升 4-8 倍|
 |**中间状态**|易于流式处理|需显式物化中间向量|可能导致内存带宽压力 (通过 JIT 缓解)|
-
-**(注：本报告中引用的 S_Sn 标记对应研究资料来源)**
