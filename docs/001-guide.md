@@ -8,7 +8,7 @@ Welcome Back!
 
 ## Updated Recently
 
-- 2026年2月5日：基于 coze-loop 探索 ClickHouse 的生产实践 [030-ClickHouse 实践](04-中间件/ClickHouse/030-ClickHouse%20实践.md) （待润色）
+- 2026年2月5日：基于 coze-loop 探索 ClickHouse 的生产实践 [030-实验结果过滤](04-中间件/ClickHouse/030-实验结果过滤.md) （待润色）
 - 2026年2月5日：基于 Gemini 整理笔记 [020-ClickHouse 的变更操作详解](04-中间件/ClickHouse/020-ClickHouse%20的变更操作详解.md)
 - 2026年2月5日：过 python 基础语法 [基础语法](02-编程语言基础/pyhton/基础语法.md)
 - 2026年2月4日：整理 ClickHouse 核心数据结构 [010-ClickHouse 核心数据结构与存储架构](04-中间件/ClickHouse/010-ClickHouse%20核心数据结构与存储架构.md)
@@ -30,7 +30,9 @@ Welcome Back!
 - [x] clickhouse 核心数据结构
 - [ ] clickhouse 读写链路
 - [ ] clickhouse 分布式相关
-- [ ] ElasticSearch 和 clickhouse 对比
+- [x] BKD树内部到底长什么样子呢
+- [ ] ElasticSearch 和 clickhouse 数值范围对比、文本检索对比、数值范围查询 + 文本检索对比
+- [ ] ElasticSearch 和 clickhouse 聚合分析对比、深度分页对比
 - [ ] 总结Apollo评测结果通过binlog异步同步到ES的策略，写、读分别是怎么做的，对比coze-loop的实现有什么优势、劣势；
 - [ ] Apollo（coze-loop）实验调度总结，内化
 - [ ] 整理简历实习部分，形成文档（在上面的TODO以及前期基础上补充，链接）

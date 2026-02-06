@@ -421,7 +421,7 @@ BKD-Tree 不是一个单一的数据结构，它由两部分组成：
 
 1. **内存 Buffer ($M$)**：一个完全在内存里的二叉树（比如 KD-Tree），用于接收最新的写入数据。
     
-2. **磁盘树集合 ($T_0, T_1, ...$)**：一组存在磁盘上的文件。每一个文件内部都是一棵**完全静态、高度优化、满填充**的 KDB-Tree。
+2. **磁盘树集合 ($T_0, T_1, ...$)**：一组存在磁盘上的文件。每一个文件内部都是一棵**完全静态、高度优化、满填充**的 KD-Tree。（**Packed (Static) K-D Tree**（紧凑存储的静态 K-D 树），类似于kdb树，但是kdb树可以写入多次，而这里的树只能写入一次）
     
 
 **结构图示**
@@ -450,6 +450,75 @@ graph TD
     style T2 fill:#e0e0e0,stroke:#9e9e9e,stroke-dasharray: 5 5
     style T3 fill:#b2dfdb,stroke:#00695c
 ```
+
+每个树内部：
+
+```mermaid
+graph TD
+    subgraph "Packed K-D Tree"
+    
+    %% --- 索引部分 (.dii) ---
+    subgraph IndexNodes ["内部节点 (存路标)"]
+        Root{<b>ROOT 节点</b><br>切分维度: <b>X 轴</b><br>切分值: <b>50</b>}
+        
+        NodeL{<b>节点 L</b><br>范围: X < 50<br>切分维度: <b>Y 轴</b><br>切分值: <b>60</b>}
+        
+        NodeR{<b>节点 R</b><br>范围: X >= 50<br>切分维度: <b>Y 轴</b><br>切分值: <b>30</b>}
+        
+        Root --"X < 50"--> NodeL
+        Root --"X >= 50"--> NodeR
+    end
+
+    %% --- 数据部分 (.dim) ---
+    subgraph LeafBlocks ["叶子数据块 (存真实数据)"]
+        direction TB
+        
+        %% 左子树的叶子
+        Block1["<b>Leaf Block 1</b><br>区域: X<50, Y<60<br>-----------------<br>Doc 1: (10, 20)<br>Doc 5: (25, 40)<br>..."]
+        
+        Block2["<b>Leaf Block 2</b><br>区域: X<50, Y>=60<br>-----------------<br>Doc 2: (15, 80)<br>Doc 9: (40, 90)<br>..."]
+        
+        %% 右子树的叶子
+        Block3["<b>Leaf Block 3</b><br>区域: X>=50, Y<30<br>-----------------<br>Doc 3: (80, 10)<br>Doc 7: (90, 20)<br>..."]
+        
+        Block4["<b>Leaf Block 4</b><br>区域: X>=50, Y>=30<br>-----------------<br>Doc 4: (60, 50)<br>Doc 8: (70, 40)<br>..."]
+    end
+    
+    %% 连接关系
+    NodeL --"Y < 60"--> Block1
+    NodeL --"Y >= 60"--> Block2
+    
+    NodeR --"Y < 30"--> Block3
+    NodeR --"Y >= 30"--> Block4
+    
+    end
+
+    %% 样式
+    style IndexNodes fill:#fff3e0,stroke:#e65100
+    style LeafBlocks fill:#e1f5fe,stroke:#01579b
+    
+    style Root fill:#ffcc80,stroke:#e65100,stroke-width:2px
+    style Block1 fill:#b3e5fc,stroke:#0277bd
+    style Block2 fill:#b3e5fc,stroke:#0277bd
+    style Block3 fill:#b3e5fc,stroke:#0277bd
+    style Block4 fill:#b3e5fc,stroke:#0277bd
+```
+
+对于叶子节点，BKD 树的叶子节点（Leaf Block）就像是一个**高度压缩的、微型的 Excel 表格**。
+
+假设我们有一个叶子节点（Block 2），它负责的区域是 `X < 50, Y >= 60`。 逻辑上，它里面存的数据就是一张简单的**列表**：
+
+| **行号** | **维度 1 (X)** | **维度 2 (Y)** | **关联的文档 (DocID)** |
+| ------ | ------------ | ------------ | ----------------- |
+| 1      | 15.0         | 80.0         | **Doc 2**         |
+| 2      | 40.0         | 90.0         | **Doc 9**         |
+| 3      | 42.5         | 65.0         | **Doc 15**        |
+| ...    | ...          | ...          | ...               |
+
+**它的核心作用是：** 当你拿着“坐标范围”找过来时，它能告诉你 **“是哪些 DocID 命中了”**。
+
+> [!tip]
+> 对于倒排索引，最后拿到的也是文档ID
 
 ---
 
