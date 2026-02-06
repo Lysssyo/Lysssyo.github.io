@@ -131,7 +131,7 @@ created_at:                2026-01-20 13:05:24
 
 ## 2. 读取
 
-例如，我们通过 `evaluator_score` 中某个 key 的分数来过滤出 `ItemId`
+例如，有如下查询：
 
 ```sql
 SELECT
@@ -192,10 +192,281 @@ graph TD
     P_Idx --> Range --> Mrk --> Offset --> Bin1 & Bin2 --> Filter1 --> BinMap --> Filter2 --> Merge --> Sort
 ```
 
+### 阶段 1：索引层定位 Granule
 
-除了 actual_output 和 score，ClickHouse 实际上还支持更多的过滤维度。过滤条件可以覆盖到以下几个维度：
+**目标：** 不读数据，直接利用 `primary.idx` 排除掉 99.9% 绝对不可能包含该 `expt_id` 的颗粒度（Granule）。
 
-  1. 人工标注过滤 (Annotation Filters)
+1. **加载索引：** ClickHouse 常驻内存加载 `primary.idx`。
+    
+2. **二分查找：**
+    
+    - 你的 `ORDER BY` 是 `(expt_id, item_id, turn_id)`。
+        
+    - WHERE 条件正好命中了 **第一主键** `expt_id = '7597428938863804417'`。
+        
+    - **效果：** 这是最高效的命中方式。系统迅速定位到：“这个实验ID只可能存在于第 5000 到 5005 号 Granule 之间”。
+        
+3. **Bloom Filter (被跳过)：**
+    
+    - 虽然你给 `expt_id` 建了 `idx_expt_id` (bloom filter)，但因为主键索引（Primary Index）已经精确命中了，**系统会直接忽略 Bloom Filter**，因为它没有主键快。
+        
+
+---
+
+### 阶段 2：定位物理位置 (.mrk2)
+
+**目标：** 拿着刚才找到的“第 5000-5005 号 Granule”，去问 `.mrk2` 文件：这几个颗粒度在磁盘的第几个字节？
+
+> [!tip]
+> mrk2 存的是 颗粒 到 blockoffest granuleoffset 的映射
+
+1. **读取 `expt_id.mrk2`：**
+    
+    - 系统查询标记文件，找到第 5000 号 Granule 对应的 `(BlockOffset, GranuleOffset)`。
+        
+    - 这告诉系统：去 `.bin` 文件的 `10MB` 处开始读，解压后从第 `50` 行开始拿。
+        
+
+---
+
+### 阶段 3：轻量级列读取 (.bin)
+
+**ClickHouse 不会傻到先把 Map 读出来。** 它会利用 `PREWHERE` 策略（即使你没写，它自动优化），先读**小且快**的列。
+
+1. **读取 `expt_id.bin`**：
+    
+    - 解压对应的压缩块。
+        
+    - **再次核对**：确认这些行确实是 `7597428938863804417`。拿到了这列的偏移之后就知道了整行在 这个 颗粒里面的偏移了
+        
+2. **读取 `status.bin`**：
+    
+    - 这是 `Int32` 类型，文件极小，读取极快。
+        
+    - **过滤：** 只保留 `status = 2` 的行。
+        
+    - **位图标记：** 此时，系统在内存里生成一个掩码（Mask），标记出哪些行是“幸存者”。
+        
+
+> **结果：** 假设一个 Granule 有 8192 行，经过这一步，可能只剩下 50 行是该实验且成功的记录。
+
+---
+
+### 阶段 4：重量级列读取 (.bin) 
+
+只对上一步幸存的那 50 行，去读取昂贵的 Map 列。
+
+1. **读取 `evaluator_score` (Map<String, Float64>)**：
+    
+    - **底层结构：** Map 在物理上通常存储为三个流：`Offset.bin`（数组偏移）、`Keys.bin`（键名）、`Values.bin`（值）。
+        
+    - **操作：**
+        
+        - 先读 Keys，寻找 `'key1'` 的下标（比如是第 0 个）。
+            
+        - 再读 Values，取出对应下标的 Float64 值。
+            
+        - **判断：** `> 0.5`。再次更新掩码，踢掉不合格的行。
+            
+2. **读取 `eval_target_data` (Map<String, String>) —— 最慢的一步**：
+    
+    - **操作：** 同样先找 Key 为 `'actual_output'`。
+        
+    - **读取 Value：** 读取对应的 String 值（这是大文本）。
+        
+    - **LIKE 扫描：** 对这几十个字符串执行 `%报错%` 匹配。
+        
+    - **优化点：** 如果你加了 `tokenbf_v1` 索引，这里会先查索引跳过不包含“报错”二字的块，减少解压。
+        
+
+---
+
+### 阶段 5：FINAL 
+
+前 4 个阶段是发生在 **每一个 Part 内部** 的。现在，要把所有涉及到的 Part 的结果汇总。
+
+由于你加了 **`FINAL`**：
+
+1. **多路加载：**
+    
+    - 系统不仅要读 `eval_target_data`，还必须读取 **`updated_at`**（版本列）以及所有的 **主键列**（`item_id`, `turn_id`）。
+        
+2. **内存归并 (Vertical Merge)：**
+    
+    - ClickHouse 构建一个优先队列。
+        
+    - 把所有 Part 里筛选出来的行，按 `(expt_id, item_id, turn_id)` 放在一起比对。
+        
+    - **去重逻辑：** 发现同一个 `item_id` 有 3 个版本（Queueing, Processing, Success），只保留 `updated_at` 最大的那个。
+        
+    - **关键点：** 如果最大的那个版本 `status != 2`（比如最新状态变成了 Failed），那么这行数据在这一步会被**剔除**（尽管它在阶段 3 曾经因为旧版本 status=2 被选中过，但 FINAL 保证了正确性）。
+        
+
+---
+
+### 阶段 6：排序与截断
+
+1. **读取 `item_idx.bin`**：
+    
+    - 对最终幸存下来的、去重后的数据，读取它们的 `item_idx`。
+        
+2. **全局排序**：
+    
+    - 在内存中按 `item_idx` 排序。
+        
+3. **LIMIT 20**：
+    
+    - 切取前 20 条，抛弃剩下的，返回结果。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### 阶段 1：索引层的“快刀” (primary.idx)
+
+**目标：** 不读数据，直接利用 `primary.idx` 排除掉 99.9% 绝对不可能包含该 `expt_id` 的颗粒度（Granule）。
+
+1. **加载索引：** ClickHouse 常驻内存加载 `primary.idx`。
+    
+2. **二分查找：**
+    
+    - 你的 `ORDER BY` 是 `(expt_id, item_id, turn_id)`。
+        
+    - WHERE 条件正好命中了 **第一主键** `expt_id = '7597428938863804417'`。
+        
+    - **效果：** 这是最高效的命中方式。系统迅速定位到：“这个实验ID只可能存在于第 5000 到 5005 号 Granule 之间”。
+        
+3. **Bloom Filter (被跳过)：**
+    
+    - 虽然你给 `expt_id` 建了 `idx_expt_id` (bloom filter)，但因为主键索引（Primary Index）已经精确命中了，**系统会直接忽略 Bloom Filter**，因为它没有主键快。
+        
+
+---
+
+### 阶段 2：定位物理位置 (.mrk2)
+
+**目标：** 拿着刚才找到的“第 5000-5005 号 Granule”，去问 `.mrk2` 文件：这几个颗粒度在磁盘的第几个字节？
+
+1. **读取 `expt_id.mrk2`：**
+    
+    - 系统查询标记文件，找到第 5000 号 Granule 对应的 `(BlockOffset, GranuleOffset)`。
+        
+    - 这告诉系统：去 `.bin` 文件的 `10MB` 处开始读，解压后从第 `50` 行开始拿。
+        
+
+---
+
+### 阶段 3：轻量级列读取 (.bin) —— “前哨战”
+
+**ClickHouse 不会傻到先把 Map 读出来。** 它会利用 `PREWHERE` 策略（即使你没写，它自动优化），先读**小且快**的列。
+
+1. **读取 `expt_id.bin`**：
+    
+    - 解压对应的压缩块。
+        
+    - **再次核对**：确认这些行确实是 `7597428938863804417`。
+        
+2. **读取 `status.bin`**：
+    
+    - 这是 `Int32` 类型，文件极小，读取极快。
+        
+    - **过滤：** 只保留 `status = 2` 的行。
+        
+    - **位图标记：** 此时，系统在内存里生成一个掩码（Mask），标记出哪些行是“幸存者”。
+        
+
+> **结果：** 假设一个 Granule 有 8192 行，经过这一步，可能只剩下 50 行是该实验且成功的记录。
+
+---
+
+### 阶段 4：重量级列读取 (.bin) —— “攻坚战”
+
+只对上一步幸存的那 50 行，去读取昂贵的 Map 列。
+
+1. **读取 `evaluator_score` (Map<String, Float64>)**：
+    
+    - **底层结构：** Map 在物理上通常存储为三个流：`Offset.bin`（数组偏移）、`Keys.bin`（键名）、`Values.bin`（值）。
+        
+    - **操作：**
+        
+        - 先读 Keys，寻找 `'key1'` 的下标（比如是第 0 个）。
+            
+        - 再读 Values，取出对应下标的 Float64 值。
+            
+        - **判断：** `> 0.5`。再次更新掩码，踢掉不合格的行。
+
+	其实还是可以定位到行
+            
+2. **读取 `eval_target_data` (Map<String, String>) —— 最慢的一步**：
+    
+    - **操作：** 同样先找 Key 为 `'actual_output'`。
+        
+    - **读取 Value：** 读取对应的 String 值（这是大文本）。
+        
+    - **LIKE 扫描：** 对这几十个字符串执行 `%报错%` 匹配。
+        
+    - **优化点：** 如果你加了 `tokenbf_v1` 索引，这里会先查索引跳过不包含“报错”二字的块，减少解压。
+        
+
+---
+
+### 阶段 5：FINAL 决战 (ReplacingMergeTree)
+
+前 4 个阶段是发生在 **每一个 Data Part 内部** 的。现在，要把所有涉及到的 Data Part 的结果汇总。
+
+由于你加了 **`FINAL`**：
+
+1. **多路加载：**
+    
+    - 系统不仅要读 `eval_target_data`，还必须读取 **`updated_at`**（版本列）以及所有的 **主键列**（`item_id`, `turn_id`）。
+        
+2. **内存归并 (Vertical Merge)：**
+    
+    - ClickHouse 构建一个优先队列。
+        
+    - 把所有 Part 里筛选出来的行，按 `(expt_id, item_id, turn_id)` 放在一起比对。
+        
+    - **去重逻辑：** 发现同一个 `item_id` 有 3 个版本（Queueing, Processing, Success），只保留 `updated_at` 最大的那个。
+        
+    - **关键点：** 如果最大的那个版本 `status != 2`（比如最新状态变成了 Failed），那么这行数据在这一步会被**剔除**（尽管它在阶段 3 曾经因为旧版本 status=2 被选中过，但 FINAL 保证了正确性）。
+        
+
+---
+
+### 阶段 6：排序与截断
+
+1. **读取 `item_idx.bin`**：
+    
+    - 对最终幸存下来的、去重后的数据，读取它们的 `item_idx`。
+        
+2. **全局排序**：
+    
+    - 在内存中按 `item_idx` 排序。
+        
+3. **LIMIT 20**：
+    
+    - 切取前 20 条，抛弃剩下的，返回结果。除了 actual_output 和 score，ClickHouse 实际上还支持更多的过滤维度。过滤条件可以覆盖到以下几个维度：
+
+  4. 人工标注过滤 (Annotation Filters)
 
 	  这是非常有用的功能。如果你的实验已经经过了人工审核，系统可以按人工打的标签进行过滤：
 	  
@@ -203,32 +474,32 @@ graph TD
 	   * 浮点数标注: AND etrf.annotation_float['human_score'] > 0.9
 	   * 布尔值标注: AND etrf.annotation_bool['is_satisfactory'] = 1
 
-  1. Item 状态过滤 (Run Status)
+  5. Item 状态过滤 (Run Status)
 
 	  除了固定 status = 2 (成功)，用户也可以专门看失败的任务或处理中的任务：
 	  
 	   * 多状态过滤: AND etrf.status IN (3) (只看失败的)
 
-  1. 数据集版本过滤 (Eval Set Version)
+  6. 数据集版本过滤 (Eval Set Version)
 
 	  如果一个实验跑了多个数据集版本（虽然通常一个实验对应一个），也可以过滤：
 	  
 	   * AND etrf.eval_set_version_id = '...'
 
-  4. 创建日期 (Created Date)
+  7. 创建日期 (Created Date)
 
 	  用于快速锁定某一天的评估结果：
 	  
 	   * AND etrf.created_date = '2026-01-20'
 
-  5. ID 范围过滤 (Item IDs)
+  8. ID 范围过滤 (Item IDs)
 
 	  如果你已经知道某几个 ID，想单独看它们的状态：
 	  
 	   * AND etrf.item_id IN (...) 或 AND etrf.item_id BETWEEN ... AND ...
 
 
-  6. 全文关键词搜索 (Keyword Search)
+  9. 全文关键词搜索 (Keyword Search)
 
 	  这是一个综合性的过滤，它会同时扫描多个字段：
 	  

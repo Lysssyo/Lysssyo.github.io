@@ -9,7 +9,7 @@ Welcome Back!
 ## Updated Recently
 
 - 2026年2月5日：基于 coze-loop 探索 ClickHouse 的生产实践 [030-ClickHouse 实践](04-中间件/ClickHouse/030-ClickHouse%20实践.md) （待润色）
-- 2026年2月5日：基于 Gemini 整理笔记 [020-ClickHouse 的 UPDATE, DELETE](04-中间件/ClickHouse/020-ClickHouse%20的%20UPDATE,%20DELETE.md)
+- 2026年2月5日：基于 Gemini 整理笔记 [020-ClickHouse 的变更操作详解](04-中间件/ClickHouse/020-ClickHouse%20的变更操作详解.md)
 - 2026年2月5日：过 python 基础语法 [基础语法](02-编程语言基础/pyhton/基础语法.md)
 - 2026年2月4日：整理 ClickHouse 核心数据结构 [010-ClickHouse 核心数据结构与存储架构](04-中间件/ClickHouse/010-ClickHouse%20核心数据结构与存储架构.md)
 - 2026年2月3日：整理 Elasticsearch 核心数据结构 [010-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/010-Elasticsearch%20核心数据结构.md)
@@ -39,6 +39,14 @@ Welcome Back!
 - [ ] 整理 Python 环境相关的文档
 - [ ] 整理`daily-news-report`的文档
 - [ ] SQL 里的悲观锁： `SELECT * xxx FOR UPDATE;` 探讨
+
+## LeetCode TOREDO
+
+- [ ] [回文链表](https://leetcode.cn/problems/palindrome-linked-list/description/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [两两交换链表节点 - 迭代法](https://leetcode.cn/prolems/swap-nodes-in-pairs/description/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [K个一组翻转链表 - 迭代法](https://leetcode.cn/problems/reverse-nodes-in-k-group/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [随机链表的复制](https://leetcode.cn/problems/copy-list-with-random-pointer/?envType=study-plan-v2&envId=top-100-liked)
+
 
 ## Quick Reference
 
