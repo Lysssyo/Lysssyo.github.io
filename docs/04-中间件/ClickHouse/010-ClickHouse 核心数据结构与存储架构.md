@@ -578,6 +578,57 @@ graph TD
     linkStyle 11 stroke:#d32f2f,stroke-width:4px,stroke-dasharray: 0;
 ```
 
+**补充：Map 底层结构**
+
+Map 在物理上通常存储为三个流：`Offset.bin`（数组偏移）、`Keys.bin`（键名）、`Values.bin`（值）。
+
+例如：Granule 里只有 2 行数据：
+- **Row 0 (Granule Offset 0):** `{'accuracy': 0.9, 'f1': 0.8}` (2个元素)
+- **Row 1 (Granule Offset 1):** `{'recall': 0.7, 'key1': 0.6, 'f1': 0.5}` (3个元素)
+
+此时，磁盘上的存储结构是这样的：
+
+**A. `offsets.bin` (数组界碑)**
+
+存储的是**累计数量**。
+
+```
+[Row 0 结束于 2, Row 1 结束于 5]
+```
+
+**B. `keys.bin` (大杂烩)**
+
+```
+Idx:   0           1      |     2         3        4
+Val: "accuracy", "f1"     |  "recall", "key1", "f1"
+      (属于 Row 0)        |        (属于 Row 1)
+```
+
+**C. `values.bin` (大杂烩)**
+
+```
+Idx:   0    1   |   2    3    4
+Val:  0.9, 0.8  |  0.7, 0.6, 0.5
+```
+
+当点查map中的某个key时，例如：
+
+```
+SELECT
+    item_id,
+    status
+FROM expt_turn_result_filter
+WHERE expt_id = '7597428938863804417' 
+  AND evaluator_score['key1'] > 0.5;
+```
+
+假设已经通过稀疏主键索引定位到了要查的这行数据在 granule 中的行偏移。
+
+那么就可以通过 `offest.bin` 拿到这一行的边界范围，假设是计算行偏移后结果是 row1，那么就是 (2，5]
+
+然后就可以暴力扫 `key.bin`，拿到要读的 `key1` 的位置（也是对应value的位置，从而就把value也直接按下标查出来了）。
+
+
 #### 2.2.5.2 稀疏索引主键范围查找
 
 相比于“点查找”必须解压并扫描整个颗粒度来寻找那**一个**数据，范围查找能充分利用 **“顺序读（Sequential Read）”** 和 **“整块拷贝”** 的优势。
