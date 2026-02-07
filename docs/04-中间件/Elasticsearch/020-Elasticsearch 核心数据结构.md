@@ -343,7 +343,179 @@ flowchart TD
 
 它的引入是 Elasticsearch 性能的一个巨大飞跃，让 ES 在处理范围查询（Range Query）和多维查询时，速度比旧版本快了数倍甚至数十倍。
 
-[020-从 KD-Tree 到 BKD-Tree](020-从%20KD-Tree%20到%20BKD-Tree.md)
+**标准的 BKD-Tree 论文/理论模型**：[010-从 KD-Tree 到 BKD-Tree](010-从%20KD-Tree%20到%20BKD-Tree.md)
+
+在 lucene 的实现中：Lucene 的一个 `.dim` 文件（对应一个 Segment）内部只是一棵单一的 K-D Tree。
+
+Lucene 利用了它自身的 **Segment（段）架构** 来充当那个“森林”。
+
+- **学术界 BKD**：一个索引 = 内存 Buffer + 磁盘上的 $T_0, T_1, T_2$。
+- **Lucene 实现**：一个 ES Shard = 内存 Indexing Buffer + 磁盘上的 Segment 0, Segment 1, Segment 2...
+
+每个 Segment 内部都有自己独立的一棵 BKD Tree。当 ES 进行 Segment Merge 时，实际上就是在做 BKD 论文里提到的“将两棵小树合并成一棵大树”的操作。
+
+> [!tip]
+> 上面提到，每个 Segment 内部都有自己独立的一棵 BKD Tree。但是实际上，BKD论文里面的BKD树是一颗森林，这里的 BKD Tree 只是Packed K-D Tree。但是 Lucene 团队之所以仍称其为 BKD 实现，是因为它完整保留了 BKD 论文中关于**磁盘布局**的核心优化技术：
+> - **Blocked (分块)**：这是 BKD 名字里 "B" 的由来。Lucene 依然将叶子节点打包成 1024 个点的 Block，将内部节点打包成 Index Block。
+> - **Optimization**：使用了论文中提到的针对 Block 的压缩和差值编码。
+> 所以，Lucene 的实现是：**用 Segment 体系实现了 BKD 的动态特性（森林），用 `.dim` 文件实现了 BKD 的静态特性（分块树）**
+
+物理存储图例：
+
+```mermaid
+graph TD
+    subgraph RAM ["内存: .dii 文件 (Packed Array)"]
+        direction TB
+        %% 数组视图
+        Array[<b>Packed Index Array</b><br>Index 1: Root<br>Index 2: Left<br>...<br>Index 4: 末梢路标 A<br>Index 5: 末梢路标 B]
+        
+        %% 逻辑解释
+        Note_RAM["这里的 '末梢路标' 依然在内存里。<br>它们存的值是：<b>文件偏移量 (File Pointer)</b>"]
+    end
+
+    subgraph HDD ["磁盘: .dim 文件 (Data Blocks)"]
+        direction TB
+        BlockA[<b>Leaf Block A</b><br>存 Doc 1..1024]
+        BlockB[<b>Leaf Block B</b><br>存 Doc 1025..2048]
+    end
+
+    %% 连接关系
+    Array -- "Index 4 存的值:<br>Pointer=0" --> BlockA
+    Array -- "Index 5 存的值:<br>Pointer=4096" --> BlockB
+
+    style RAM fill:#fff3e0,stroke:#e65100
+    style HDD fill:#e1f5fe,stroke:#01579b
+```
+
+隐式指针，内存存的dii是一个数组，内存存的有根节点、中间节点以及指向磁盘的末梢节点，其中末梢节点存的是 指向磁盘文件的文件偏移量,`.dii` 里的指针（文件偏移量）指的就是这些块的**起始字节位置**。
+
+> [!tip]
+> **零空间浪费**：不需要存 64位的指针（8字节），省了海量空间。
+> **CPU Cache 友好**：节点在内存里是连续的（或者局部连续的），遍历速度极快。
+
+在 `.dim` 文件中，叶子节点是真正存数据的地方。Lucene 默认一个叶子块（Leaf Block）存储 **1024 个点**（这比传统数据库的页要小）。
+
+
+### 4. 叶子节点 (Leaf Blocks) 的微观结构
+
+在 `.dim` 文件中，叶子节点是真正存数据的地方。`.dim` 文件在物理上没有任何复杂的树形结构，它就是**一个个连续排列的 Leaf Block（叶子块）**。Lucene 默认一个叶子块（Leaf Block）存储 **1024 个点**（这比传统数据库的页要小）。
+
+### 2. 微观视角：Leaf Block 内部解剖
+
+这就是 Lucene “扣空间”到了极致的地方。一个 Block 内部并非简单的 Excel 表格，它是**高度压缩**的。
+
+为了方便理解，我们先看**逻辑结构**，再看**物理结构**。
+
+#### A. 逻辑结构 (它存了什么？)
+
+假设这是一个存储二维坐标 `(Lat, Lon)` 的块。逻辑上它包含两部分核心数据：
+
+1. **数值 (Values)**：也就是你的坐标数据。
+    
+2. **文档ID (DocIDs)**：这是连接 Lucene 其他部分的唯一钥匙。
+    
+
+| **序号** | **维度 1 (Lat)** | **维度 2 (Lon)** | **关联的 DocID** |
+| ------ | -------------- | -------------- | ------------- |
+| 1      | 30.12345       | 120.12345      | **10**        |
+| 2      | 30.12346       | 120.12348      | **25**        |
+| ...    | ...            | ...            | ...           |
+|        |                |                |               |
+
+#### B. 物理结构 (它怎么存的？)
+
+Lucene 不会傻傻地存 `double` 和 `int`。它使用了 **列式存储 (Columnar)** 的思想，把 DocID 和 数值分开存，并疯狂压缩。
+
+```mermaid
+graph TD
+    subgraph LeafBlock ["单个 Leaf Block 的内部结构"]
+        direction TB
+        
+        Header["<b>Header</b><br>包含点的数量 (count)<br>例如: 1024"]
+        
+        subgraph DocID_Section ["DocID 区域 (高度压缩)"]
+            IDs["<b>DocIDs 列表</b><br>使用差值编码 (Deltas)<br>DocID: 10, 15, 18...<br>存为: 10, +5, +3..."]
+        end
+        
+        subgraph Value_Section ["数值区域 (公共前缀压缩)"]
+            Values["<b>Packed Values</b><br>所有点的坐标数据<br>1. 计算 Block 内的 Min 值<br>2. 实际上只存: (Value - Min)"]
+        end
+    end
+
+    Header --> DocID_Section
+    DocID_Section --> Value_Section
+
+    style LeafBlock fill:#fff9c4,stroke:#fbc02d
+```
+
+**关键技术 1：DocID 的差值压缩 (Deltas)**
+
+Lucene 会尽量把 Block 内的数据按 DocID 排序（如果在构建时允许的话），或者仅仅是紧凑存储。
+
+- 原始：`[100, 101, 105, 108]`
+    
+- 存储：`100` (基准), `1` (差), `4` (差), `3` (差)
+    
+- 效果：用极少的 bit 就能存下 DocID。
+    
+
+**关键技术 2：数值的公共前缀压缩 (Common Prefix)**
+
+这是 BKD 树省空间的精髓。
+
+在一个小小的 Block 里，大家的坐标往往非常接近。
+
+- 点 A: `120.15678`
+    
+- 点 B: `120.15679`
+    
+- **Lucene 做法**：
+    
+    - 提取公共前缀（基准值）：`120.1567`
+        
+    - 点 A 只存后缀：`8`
+        
+    - 点 B 只存后缀：`9`
+        
+        这使得原本 8 字节的 `double` 可能只需要 1 个字节就能存下。
+        
+
+---
+
+### 3. 它是如何关联到文档的？(The Link)
+
+你问到了最核心的问题：**“拿到 DocID 之后呢？”**
+
+BKD-Tree (也就是 `.dim` 和 `.dii`) 的工作到 **返回 DocID** 这一步就**彻底结束**了。它不负责告诉你文档的内容是什么。
+
+**全流程图解：**
+
+假设你搜 `Lat > 30`。
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant BKD as BKD Tree (.dii / .dim)
+    participant Forward as 正向索引 (Stored Fields)
+    participant Columnar as 列式存储 (DocValues)
+
+    User->>BKD: 查询 "Lat > 30"
+    Note over BKD: 1. 查内存 .dii 定位 Block<br>2. 读磁盘 .dim 解压数据<br>3. 拿到匹配的 DocID 列表
+    BKD-->>User: 返回 DocID: [10, 25, 42]
+    
+    Note right of User: 到这里 BKD 的任务完成了！<br>接下来是 Lucene 的其他组件接手。
+
+    alt 用户需要看原始 JSON
+        User->>Forward: 拿着 DocID=10 去查 _source
+        Forward-->>User: 返回 {"name": "张三", "age": 18...}
+    else 用户需要做聚合/排序
+        User->>Columnar: 拿着 DocID=10 去查 "价格" 字段
+        Columnar-->>User: 返回 Price = 99.0
+    end
+```
+
+
+
 
 ### 5.1 例1 单字段查询
 

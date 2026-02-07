@@ -118,7 +118,7 @@ POST /products/_update/1?retry_on_conflict=3
 
 **文档首先被写入 Lucene 的内存缓冲区（Indexing Buffer）。此时，文档还不可被搜索。** 这是 ES 被称为“近实时”而非“实时”搜索的关键原因。Lucene 的倒排索引结构非常复杂，实时构建索引开销巨大，因此采用缓冲机制批量构建 。
 
-要详细了解这个过程，我们先看看这三大核心数据结构是什么。[010-Elasticsearch 核心数据结构](010-Elasticsearch%20核心数据结构.md)
+要详细了解这个过程，我们先看看这三大核心数据结构是什么。[020-Elasticsearch 核心数据结构](020-Elasticsearch%20核心数据结构.md)
 
 #### 2.2.3 写入 Translog
 

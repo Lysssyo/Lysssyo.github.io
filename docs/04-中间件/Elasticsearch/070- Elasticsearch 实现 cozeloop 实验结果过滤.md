@@ -6,7 +6,7 @@ metadata:
   triggers: dynamic_templates, Map mapping, cozeLoop, full-text search
 ---
 
-# cozeLoop 实验结果过滤
+# Elasticsearch 实现 cozeloop 实验结果过滤
 
 本文档深入探讨了在 Elasticsearch (ES) 中实现 cozeLoop 动态元数据过滤的方案，包括基于动态模板的索引设计、写入流程以及针对高性能列式读取的查询优化。
 

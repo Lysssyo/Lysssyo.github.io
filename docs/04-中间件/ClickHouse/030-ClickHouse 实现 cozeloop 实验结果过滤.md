@@ -8,7 +8,7 @@ date created: 2026-02-05 20:04:30
 date modified: 2026-02-06 15:13:09
 ---
 
-#  cozeLoop 实验结果过滤
+#  ClickHouse 实现 cozeloop 实验结果过滤
 
 ## 1. 表结构设计
 

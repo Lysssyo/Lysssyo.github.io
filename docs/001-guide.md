@@ -8,11 +8,11 @@ Welcome Back!
 
 ## Updated Recently
 
-- 2026年2月5日：基于 coze-loop 探索 ClickHouse 的生产实践 [030-实验结果过滤](04-中间件/ClickHouse/030-实验结果过滤.md) （待润色）
+- 2026年2月5日：基于 coze-loop 探索 ClickHouse 的生产实践 [030-ClickHouse 实现 cozeloop 实验结果过滤](04-中间件/ClickHouse/030-ClickHouse%20实现%20cozeloop%20实验结果过滤.md) （待润色）
 - 2026年2月5日：基于 Gemini 整理笔记 [020-ClickHouse 的变更操作详解](04-中间件/ClickHouse/020-ClickHouse%20的变更操作详解.md)
 - 2026年2月5日：过 python 基础语法 [基础语法](02-编程语言基础/pyhton/基础语法.md)
 - 2026年2月4日：整理 ClickHouse 核心数据结构 [010-ClickHouse 核心数据结构与存储架构](04-中间件/ClickHouse/010-ClickHouse%20核心数据结构与存储架构.md)
-- 2026年2月3日：整理 Elasticsearch 核心数据结构 [010-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/010-Elasticsearch%20核心数据结构.md)
+- 2026年2月3日：整理 Elasticsearch 核心数据结构 [020-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/020-Elasticsearch%20核心数据结构.md)
 - 2026年1月28日：~~基于 Gemini Deep Research 和 Gemini 学习辅导 构建的报告~~（废弃）
 - 2026年1月27日：基于 Gemini Deep Research 构建的报告 [Skill](80-人工智能/Skill.md)
 - 2026年1月27日：基于 Gemini Deep Research 构建的报告 [MCP](80-人工智能/MCP.md)
