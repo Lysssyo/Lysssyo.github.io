@@ -295,11 +295,150 @@ ES 被称为“近实时”搜索引擎，其核心机制在于 **Refresh**。�
 2. **多重 GET（Multi-GET）**：协调节点根据这 10 个 ID，去对应的分片上请求完整的文档内容（`_source` 字段）。
     
 3. **结果拼接与返回**：分片返回文档内容，协调节点拼接成最终 JSON 响应，包含 `hits` 数组、聚合结果等，返回给客户端 。
+
+### 4.3 多索引结构的并行求交集 (Index Intersection)
+
+> [!important]
+> 
+> Elasticsearch 最强大的机制之一：**多索引结构的并行求交集 (Index Intersection)**
+> 
+> ES 不会死板地先查完 A 再查完 B 然后求交集，而是利用 **Cost Estimator (代价估算器)** 选择一条“阻力最小”的路径，由一个查询驱动，另一个查询验证。
+
+**查询示例：**
+
+```json
+GET /expt_turn_result_filter/_search
+{
+  "_source": ["item_id", "evaluator_score"],
+  "query": {
+    "bool": {
+      "filter": [
+        { 
+          "term": { "expt_id": "7597428938863804417" } 
+        },
+        { 
+          "range": { "evaluator_score.key1": { "gt": 0.5 } } 
+        }
+      ]
+    }
+  }
+}
+```
+
+#### 4.3.1 核心机制：Cost 估算
+
+Lucene 引入了一个智能包装器类 **`IndexOrDocValuesQuery`**，它的核心逻辑是 **“代价（Cost）决定策略”**。
+
+在查询执行前，Lucene 会询问每个子查询（Clause）的预估匹配文档数（Cost/Selectivity），然后一个子查询作为驱动者，其他的作为验证者
+
+- **Driver (驱动者)**：代价最小（最稀疏、匹配文档最少）的查询。它负责**生产** Doc ID。
+    
+- **Verifier (验证者)**：代价较大（较稠密、匹配文档较多）的查询。它负责**验证** Driver 提供的 Doc ID 是否满足条件。
     
 
-### 4.3 高级搜索模式与性能陷阱
+**原则**：**Sparse drives Dense**（稀疏驱动稠密）。
 
-#### 4.3.1 DFS Query Then Fetch：解决评分偏差
+---
+
+#### 4.3.2 实例深度解析
+
+针对上述查询，假设数据分布如下：
+
+- **`expt_id` (Term)**：匹配 100 条文档（极度稀疏）。
+    
+- **`evaluator_score` (Range)**：匹配 5000 万条文档（极度稠密）。
+    
+
+**执行计划分析：**
+
+1. **Driver (驱动者)：倒排索引 (Inverted Index)**
+    
+    - **原因**：`expt_id` 的 Cost (100) 远小于 Cost (5000万)。
+        
+    - **动作**：倒排索引迭代器 (`PostingsEnum`) 快速吐出文档 ID：`Doc 10, Doc 25, Doc 42...`
+        
+2. **Verifier (验证者)：列式存储 (DocValues)**
+    
+    - **注意**：此时 Lucene **并没有** 使用 BKD 树（Index）来验证。
+        
+    - **原因**：对于少量 ID 的验证，**随机查值 (Random Access)** 比 **爬树 (Tree Traversal)** 更快。
+        
+    - **动作**：Lucene 直接读取磁盘上的 `.dvd` 文件（DocValues），定位到 `Doc 10` 的位置，读取 `evaluator_score` 的值。
+        
+    - **判断**：`0.8 > 0.5` ? 是 -> 保留；否 -> 丢弃。
+        
+
+**底层图解：**
+
+```mermaid
+graph TD
+    subgraph "Driver: 倒排索引 (Inverted Index)"
+        Term["Term: expt_id='759...'"]
+        DocList["Doc ID List: [10, 25, 42]"]
+        Term --> DocList
+    end
+
+    subgraph "Verifier: DocValues (.dvd)"
+        Check10{"Check Doc 10"}
+        Check25{"Check Doc 25"}
+        
+        Value10["Read Value: 0.8"]
+        Value25["Read Value: 0.1"]
+    end
+
+    DocList -- "1: 拿到 ID: 10" --> Check10
+    Check10 -- "2: 随机读取 (Seek)" --> Value10
+    Value10 -- "3: 0.8 > 0.5?" --> Keep["✅ 保留 (Match)"]
+
+    DocList -- "1: 拿到 ID: 25" --> Check25
+    Check25 -- "2: 随机读取 (Seek)" --> Value25
+    Value25 -- "3: 0.1 > 0.5?" --> Drop["❌ 丢弃 (No Match)"]
+
+    style Term fill:#e1f5fe,stroke:#01579b
+    style Check10 fill:#fff9c4,stroke:#fbc02d
+    style Value10 fill:#fff9c4,stroke:#fbc02d
+```
+
+---
+
+#### 4.3.3 特殊情况：如果没有 DocValues 会怎样？
+
+如果在该字段的 Mapping 中设置了 `"doc_values": false`，Lucene 就失去了“直接查值验证”的能力。
+
+**降级方案 (Fallback)：**
+
+1. **Driver** 依然是倒排索引（因为它还是最稀疏的）。
+    
+2. **Verifier** 被迫变为 **BKD 树迭代器 (PointIndex)**。
+    
+
+**执行过程 (Advance 跳跃验证)：**
+
+- Lucene 获取 BKD 树的迭代器。
+    
+- 拿着 `Doc 10` 对 BKD 树说：**“Advance(10)”**（请跳到 >= 10 的位置）。
+    
+- **代价**：BKD 树需要从根节点向下遍历索引块 (`Packed Index`)，可能涉及多次磁盘 I/O 才能确定 Doc 10 是否在叶子节点中。
+    
+- **结论**：性能会显著下降，因为 **O(log N) 的爬树验证** 远慢于 **O(1) 的 DocValues 查找**。
+    
+
+---
+
+#### 4.3.4 各种排列组合下的驱动与验证
+
+Lucene 的优化器会根据 Term 和 Range 的相对稀疏程度，动态选择最佳路径。
+
+| **场景组合**                                        | **Driver (产生 ID)** | **Verifier (验证 ID)** | **底层验证机制 (核心技术)**      | **性能分析**                                                  |
+| ----------------------------------------------- | ------------------ | -------------------- | ---------------------- | --------------------------------------------------------- |
+| **Term (少) + Range (多)**                        | **倒排索引**           | Range Query          | **DocValues (随机访问)**   | **🚀 最快**。<br><br>利用 OS Cache 进行极少量的随机读取验证。               |
+| **Range (少) + Term (多)**                        | **BKD 树**          | Term Query           | **Skip List (跳表)**     | **⚡️ 很快**。<br><br>倒排索引利用 Skip Data 快速跳过无关 Block，定位目标 ID。  |
+| **Range A (少) + Range B (多)**                   | **BKD 树 A**        | Range Query B        | **BKD 迭代器 (Leapfrog)** | **Standard**。<br><br>两个迭代器互相跳跃 (Advance)，不需要查值，只查 ID 存在性。 |
+| **无 DocValues 时**<br><br><br>(Term 少 + Range 多) | **倒排索引**           | Range Query          | **BKD 迭代器 (Advance)**  | **⚠️ 较慢**。<br><br>  <br>为了验证几个 ID 而去遍历树结构，开销较大。           |
+
+### 4.4 高级搜索模式与性能陷阱
+
+#### 4.4.1 DFS Query Then Fetch：解决评分偏差
 
 默认的 "Query Then Fetch" 在数据分布不均时会导致评分不准。
 
@@ -310,7 +449,7 @@ ES 被称为“近实时”搜索引擎，其核心机制在于 **Refresh**。�
 - **代价**：多了一次网络往返（RTT），性能较差。通常只有在数据量极少且分布极端不均时才使用。对于大数据量索引，本地词频通常已经足够接近全局词频，无需开启此模式 。
     
 
-#### 4.3.2 深度分页的性能危机
+#### 4.4.2 深度分页的性能危机
 
 ES 的这种两阶段查询机制导致了著名的“深度分页”问题。
 
@@ -370,7 +509,7 @@ Shard 会遍历内部所有的 Segment（包括内存里的 Buffer 生成的新�
     - **查 BKD-Tree**：利用 `.dii` 快速定位，去 `.dim` 文件里找到符合 `price > 100` 的文档 ID 集合。
         
     - **位图操作 (BitSet)**：如果使用了 Filter 缓存，直接对位图进行 `AND` 操作。
-        
+
 
 #### C. Shard 级别的“汇聚”
 
