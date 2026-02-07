@@ -8,6 +8,7 @@ Welcome Back!
 
 ## Updated Recently
 
+- 2026年2月7日：厘清 ES 的 BKD 树底层实现以及过滤路径，厘清 ES 的两阶段检索，厘清 ES 的多索引结构并行求交集，生产、优化文档 [070- Elasticsearch 实现 cozeloop 实验结果过滤](04-中间件/Elasticsearch/070-%20Elasticsearch%20实现%20cozeloop%20实验结果过滤.md)、[020-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/020-Elasticsearch%20核心数据结构.md)、[040-Elasticsearch 读写链路](04-中间件/Elasticsearch/040-Elasticsearch%20读写链路.md)
 - 2026年2月5日：基于 coze-loop 探索 ClickHouse 的生产实践 [030-ClickHouse 实现 cozeloop 实验结果过滤](04-中间件/ClickHouse/030-ClickHouse%20实现%20cozeloop%20实验结果过滤.md) （待润色）
 - 2026年2月5日：基于 Gemini 整理笔记 [020-ClickHouse 的变更操作详解](04-中间件/ClickHouse/020-ClickHouse%20的变更操作详解.md)
 - 2026年2月5日：过 python 基础语法 [基础语法](02-编程语言基础/pyhton/基础语法.md)
