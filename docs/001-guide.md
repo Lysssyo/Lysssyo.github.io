@@ -26,6 +26,7 @@ Welcome Back!
 - [x] 魔法方法、鸭子类型补充学习，enumerate和另一个的区别
 - [ ] coze-loop的数据集版本发布方案，对比Apollo：Apollo怎么做的，coze-loop怎么做的（注意总结 MVCC ，copy-on-write ， 零拷贝，RocketMQ异步链路，冷热查询链路）
 - [ ] 三种 MQ 对比
+- [ ] CK 什么时候会用到 CPU 的 SMID
 - [x] ElasticSearch 整理核心数据结构
 - [x] ElasticSearch 整理读写链路
 - [x] ElasticSearch 整理分布式相关
@@ -33,8 +34,8 @@ Welcome Back!
 - [ ] clickhouse 读写链路
 - [ ] clickhouse 分布式相关（低优先级）
 - [x] BKD树内部到底长什么样子呢
-- [ ] ElasticSearch 和 clickhouse 数值范围对比、文本检索对比、数值范围查询 + 文本检索对比
-- [ ] ElasticSearch 和 clickhouse 聚合分析对比
+- [x] ElasticSearch 和 clickhouse 数值范围对比、文本检索对比、数值范围查询 + 文本检索对比
+- [x] ElasticSearch 和 clickhouse 聚合分析对比
 - [ ] 总结Apollo评测结果通过binlog异步同步到ES的策略，写、读分别是怎么做的，对比coze-loop的实现有什么优势、劣势；
 - [ ] Apollo（coze-loop）实验调度总结，内化
 - [ ] 整理简历实习部分，形成文档（在上面的TODO以及前期基础上补充，链接）
