@@ -25,19 +25,21 @@ Welcome Back!
 
 - [x] 魔法方法、鸭子类型补充学习，enumerate和另一个的区别
 - [ ] coze-loop的数据集版本发布方案，对比Apollo：Apollo怎么做的，coze-loop怎么做的（注意总结 MVCC ，copy-on-write ， 零拷贝，RocketMQ异步链路，冷热查询链路）
+- [ ] 三种 MQ 对比
 - [x] ElasticSearch 整理核心数据结构
 - [x] ElasticSearch 整理读写链路
 - [x] ElasticSearch 整理分布式相关
 - [x] clickhouse 核心数据结构
 - [ ] clickhouse 读写链路
-- [ ] clickhouse 分布式相关
+- [ ] clickhouse 分布式相关（低优先级）
 - [x] BKD树内部到底长什么样子呢
 - [ ] ElasticSearch 和 clickhouse 数值范围对比、文本检索对比、数值范围查询 + 文本检索对比
-- [ ] ElasticSearch 和 clickhouse 聚合分析对比、深度分页对比
+- [ ] ElasticSearch 和 clickhouse 聚合分析对比
 - [ ] 总结Apollo评测结果通过binlog异步同步到ES的策略，写、读分别是怎么做的，对比coze-loop的实现有什么优势、劣势；
 - [ ] Apollo（coze-loop）实验调度总结，内化
 - [ ] 整理简历实习部分，形成文档（在上面的TODO以及前期基础上补充，链接）
 - [ ] 整理简历开源部分，形成文档
+- [ ] 简历补充：ES 计算优化
 - [x] 过 Python 语法
 - [ ] 整理 Python 环境相关的文档
 - [ ] 整理`daily-news-report`的文档
@@ -49,10 +51,9 @@ Welcome Back!
 - [ ] [两两交换链表节点 - 迭代法](https://leetcode.cn/prolems/swap-nodes-in-pairs/description/?envType=study-plan-v2&envId=top-100-liked)
 - [ ] [K个一组翻转链表 - 迭代法](https://leetcode.cn/problems/reverse-nodes-in-k-group/?envType=study-plan-v2&envId=top-100-liked)
 - [ ] [随机链表的复制](https://leetcode.cn/problems/copy-list-with-random-pointer/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [中序遍历-迭代法](https://leetcode.cn/problems/binary-tree-inorder-traversal/submissions/697285211/?envType=study-plan-v2&envId=top-100-liked)
 
 
 ## Quick Reference
 
 - apiKey与密码串：[密码串](98-Private/密码串.md)
-
- 

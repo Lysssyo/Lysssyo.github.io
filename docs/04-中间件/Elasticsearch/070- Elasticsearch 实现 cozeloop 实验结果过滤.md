@@ -217,3 +217,94 @@ GET /expt_turn_result_filter/_search
 ```
 
 具体参考 [4.3 多索引结构的并行求交集 (Index Intersection)](040-Elasticsearch%20读写链路.md#4.3%20多索引结构的并行求交集%20(Index%20Intersection))
+
+
+### 3.3 avg 计算
+
+#### 3.3.1 概述
+
+例如：查询 `avg(evaluator_score)`
+
+基于当前的 Mapping 设计，Elasticsearch 很难高效地（利用倒排索引或 BKD 树）实现这个查询。
+
+因为在 ES 的底层存储中，`evaluator_score` 是 `object` 类型，而你开启了 `dynamic: true`。 假设你存入的数据是：
+
+```json
+{
+  "evaluator_score": {
+    "fluency": 0.8,
+    "accuracy": 0.4
+  }
+}
+```
+
+在 Lucene 层面，这会被打平成两个**完全独立**的字段：
+
+1. `evaluator_score.fluency` (float)
+    
+2. `evaluator_score.accuracy` (float)
+    
+
+它们之间**没有关联**。ES 并没有一个地方存储了“evaluator_score 下所有值的列表”。因此，想要“计算所有子字段的平均值”，你必须在查询时动态读取所有字段，这违反了利用索引加速的初衷。
+
+#### 3.3.2 实现方案
+
+##### 方案一：Script Query (脚本查询)
+
+这是在不修改数据结构的情况下，唯一能做的方法。**但是性能极差。**
+
+因为你是动态 Key，我们无法通过列式存储（DocValues）来遍历（DocValues 必须知道具体的 Field Name）。**我们被迫读取 `_source`（原始 JSON），这会导致 ES 扫描所有文档，完全放弃索引优势**。
+
+**查询语句：**
+
+```json
+GET /expt_turn_result_filter/_search
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "script": {
+          "script": {
+            "lang": "painless",
+            "source": """
+              // 1. 检查字段是否存在
+              if (params['_source']['evaluator_score'] == null) {
+                return false;
+              }
+              
+              // 2. 获取 map 对象
+              def scoresMap = params['_source']['evaluator_score'];
+              double sum = 0;
+              int count = 0;
+
+              // 3. 遍历动态 Key 并计算 Sum
+              for (def key : scoresMap.keySet()) {
+                if (scoresMap[key] instanceof Number) {
+                  sum += scoresMap[key];
+                  count++;
+                }
+              }
+
+              // 4. 计算平均值并比较
+              if (count == 0) return false;
+              return (sum / count) > 0.5;
+            """
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**⚠️ 为什么性能差？**
+
+- **Full Scan**: 它会遍历所有文档。
+    
+- **Source Load**: 它必须从磁盘加载巨大的 `_source` JSON 并反序列化，无法利用我们之前讨论的 BKD 树或倒排索引。
+    
+- **Latency**: 这种查询在数据量上百万后，耗时通常以“秒”甚至“分钟”计。
+
+##### 方案二：预计算，写入avg
+
+很简单，就是写入数据的时候，加多一个字段，这个字段的值为 `avg(evaluator_score)`

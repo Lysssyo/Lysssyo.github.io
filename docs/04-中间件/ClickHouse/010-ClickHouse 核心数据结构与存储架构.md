@@ -578,6 +578,12 @@ graph TD
     linkStyle 11 stroke:#d32f2f,stroke-width:4px,stroke-dasharray: 0;
 ```
 
+
+假设是这样：`WHERE UserID = 10086 AND addr LIKE '%佛山%'`
+
+那么其实，效果和上面的是一样的，也就是说，即使是文本类型的模糊匹配，只要用到了稀疏主键索引去定位，都查的快。
+
+
 **补充：Map 底层结构**
 
 Map 在物理上通常存储为三个流：`Offset.bin`（数组偏移）、`Keys.bin`（键名）、`Values.bin`（值）。
@@ -748,7 +754,113 @@ graph TD
     - 这些数据在 `.bin` 文件里通常是物理相邻的。
     - 磁盘磁头可以一次性顺序读取一大段数据（Sequential Read），避免了随机寻址的开销。
 
-#### 2.2.5.3 总结
+#### 2.2.5.3 不走索引
+
+例如：`SELECT Name FROM table WHERE status = 2` 以及 `SELECT Name FROM table  WHEREaddr LIKE '%佛山%'`
+
+只要不走索引（主键索引或跳数索引失效），那么就无法精确定位 granule，ClickHouse 就必须老老实实地去磁盘上把对应的 `.bin` 文件（数据本体）读进内存，然后遍历每一行数据。
+
+但是，**“遍历 Int 的 bin”** 和 **“遍历 String 的 bin”**，虽然动作名一样（都是遍历），但在物理层面是 **两种完全不同量级的苦力活**。
+
+
+```mermaid
+graph TD
+    %% =================样式定义=================
+    classDef int fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef str fill:#ffcdd2,stroke:#c62828,stroke-width:2px;
+    classDef cpu fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef disk fill:#e0e0e0,stroke:#616161,stroke-width:2px;
+
+    %% =================场景 A: 遍历 Int32 (数值)=================
+    subgraph Scenario_A ["场景 A: 遍历 Int32 (数值扫描)"]
+        direction TB
+        Disk_A[("磁盘: status.bin<br>(4GB / 10亿行)")]
+        
+        %% 数据流
+        Stream_A["==== 数据流 (细管子) ====>"]
+        
+        CPU_A["CPU (SIMD 向量化)"]
+        Action_A["⚡ 一次指令比对 16 个数字 ⚡<br>CMP [1,0,1,0...] vs 1"]
+        
+        Disk_A --> Stream_A --> CPU_A --> Action_A
+        
+        class Disk_A disk
+        class Stream_A int
+        class CPU_A cpu
+    end
+
+    %% =================场景 B: 遍历 String (文本扫描)=================
+    subgraph Scenario_B ["场景 B: 遍历 String (文本模糊扫描)"]
+        direction TB
+        Disk_B[("磁盘: addr.bin<br>(50GB / 10亿行)")]
+        
+        %% 数据流
+        Stream_B["================ 数据流 (粗水管) ================>"]
+        
+        CPU_B["CPU (复杂字符串处理)"]
+        Action_B["🐌 逐个字符回溯匹配 🐌<br>CHECK '广东省...' LIKE '%佛山%'"]
+        
+        Disk_B --> Stream_B --> CPU_B --> Action_B
+        
+        class Disk_B disk
+        class Stream_B str
+        class CPU_B cpu
+    end
+```
+
+1. **I/O 层面的差距**
+
+- **Int32 (数值)**：
+    
+    - **特征**：固定宽度（Fixed Width），每行死死地只占 **4 字节**。
+        
+    - **对齐**：数据在磁盘上排列得整整齐齐，像士兵方阵。
+        
+    - **读取**：CPU 知道每个数在哪里，直接把内存块 copy 进寄存器即可。**带宽利用率极高**。
+        
+- **String (文本)**：
+    
+    - **特征**：变长宽度（Variable Width）。有的地址 10 字节，有的 100 字节。
+        
+    - **结构**：ClickHouse 实际上要读两个文件！
+        
+        1. **`addr.bin`**：连在一起的字符长龙。
+            
+        2. **`addr.mrk` (或 offset)**：告诉你第 N 行字符串从哪里开始，到哪里结束。
+            
+    - **读取**：CPU 得先算“这行在哪里截断”，再把这坨字节读出来。**I/O 吞吐量巨大（可能比 Int 大 10-50 倍）**。
+        
+
+2. **CPU 层面的差距**
+
+- **Int32 (数值)**：
+    
+    - **指令**：`CMP` (Compare)。这是 CPU 最基础的指令，**1 个时钟周期**就能做完。
+        
+    - **SIMD**：因为 Int 对齐得好，ClickHouse 可以利用 **AVX2 / AVX-512** 指令集，**一条指令同时比对 64 个整数**。
+        
+    - **速度**：像机关枪扫射一样快。
+        
+- **String (文本)**：
+    
+    - **指令**：需要运行一个**算法**（如 `Volnitsky` 搜索算法）。
+        
+    - **逻辑**：
+        
+        1. 读取第一个字符，是 '佛' 吗？
+            
+        2. 不是 -> 下一个。
+            
+        3. 是 -> 读下一个字符，是 '山' 吗？
+            
+        4. 不是 -> 回溯，从下一个字符重新开始...
+            
+    - **代价**：大量的 **分支预测失败 (Branch Misprediction)** 和 **缓存未命中 (Cache Miss)**。
+        
+    - **速度**：像在一个个检查 DNA 序列一样慢。
+
+
+#### 2.2.5.4 总结
 
 - **点查找 (Point Lookup):** 像是在一本书里找**一个字**。你得翻到那一页，从头读到尾找到它。
 - **范围查找 (Range Query):** 像是在撕书。

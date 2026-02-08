@@ -226,7 +226,47 @@ graph TD
 
 ---
 
-## 4. 多维过滤维度总结
+## 4. avg 计算
+
+```sql
+SELECT * FROM expt_turn_result_filter
+WHERE 
+  -- 1. 取出 map 的所有 values 变成数组 [0.8, 0.6]
+  -- 2. 计算数组平均值
+  arrayAvg(mapValues(evaluator_score)) > 0.5
+  
+  AND expt_id = '7597428938863804417' -- 配合主键过滤
+```
+
+在 ClickHouse 中，`Map(String, Float64)` 在物理磁盘上实际上被拆分成了 **2 个独立的列文件**（再加上偏移量文件）：
+
+1. **`evaluator_score.keys.bin`**：存储所有的 Key（String 数组）。
+    
+2. **`evaluator_score.values.bin`**：存储所有的 Value（Float64 数组）。
+
+> [!tip]
+> Map结构详解：[2.2.5.1 稀疏索引主键点查](010-ClickHouse%20核心数据结构与存储架构.md#2.2.5.1%20稀疏索引主键点查) 后面的《Map补充部分》
+
+当你计算 `Avg` 时，ClickHouse **根本不需要读取 Key 的文件**。它只需要读取 `values.bin` 这个全是浮点数的文件，这极大地减少了磁盘 I/O。
+
+**ClickHouse 是怎么执行的？**
+
+1. **主键索引过滤 (Primary Key Pruning)**： 你的表 `ORDER BY (expt_id, ...)`。CK 首先利用稀疏索引（`.idx` 文件）快速定位到 `expt_id = '759...'` 所在的那几个 **Data Part**（数据块）。
+    
+    - _效果_：直接过滤掉 99.9% 的无关数据块。
+        
+2. **列裁剪 (Column Pruning)**： 在剩下的数据块中，CK **只读取** `evaluator_score.values` 这一列的数据。其他列（如 `input`, `created_at`）完全不碰。
+    
+3. **向量化计算 (SIMD Vectorization)**： 这是 CK 的杀手锏。它加载一坨数据（比如 65536 行）进入 CPU 缓存。
+    
+    - 调用 `mapValues`：其实就是直接拿到了底层那个 Float 数组。
+        
+    - 调用 `arrayAvg`：利用 CPU 的 SIMD 指令（单指令多数据流），一次性计算多个数组的平均值。
+        
+    - **速度**：这种计算是在内存中纯数字的运算，没有 JSON 解析，没有对象反序列化，速度接近内存带宽极限。
+
+
+## 5. 多维过滤维度总结
 
 除了基础的状态检查，该架构支持丰富的多维分析：
 
@@ -239,7 +279,7 @@ graph TD
 
 ---
 
-## 5. 性能优化建议
+## 6. 性能优化建议
 
 - **主键顺序**：务必将 `expt_id` 作为首个主键。它是过滤频率最高的字段。
 - **Map 效率**：Map 很方便，但在颗粒度内涉及“数组扫描”。对于过滤极频繁的键，应考虑提升为独立列。
