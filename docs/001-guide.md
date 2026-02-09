@@ -28,7 +28,7 @@ Welcome Back!
 - [x] 魔法方法、鸭子类型补充学习，enumerate和另一个的区别
 - [ ] coze-loop的数据集版本发布方案，对比Apollo：Apollo怎么做的，coze-loop怎么做的（注意总结 MVCC ，copy-on-write ， 零拷贝，RocketMQ异步链路，冷热查询链路）
 - [ ] 三种 MQ 对比
-- [ ] rabbitmq如何实现负载均衡、仲裁模式下rabbitmq的消费组如何工作
+- [ ] rabbitmq如何实现负载均衡、仲裁模式下rabbitmq的消费如何工作
 - [ ] CK 什么时候会用到 CPU 的 SMID
 - [x] ElasticSearch 整理核心数据结构
 - [x] ElasticSearch 整理读写链路
