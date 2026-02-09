@@ -8,6 +8,8 @@ Welcome Back!
 
 ## Updated Recently
 
+- 2026年2月8日：基于 Gemini Deep Research [020-Apache Kafka 深度剖析](04-中间件/MessageQueue/020-Apache%20Kafka%20深度剖析.md)
+- 2026年2月8日： ElasticSearch 和 clickhouse 各个场景下的对比 [060-OLAP 查询与计算对比：ClickHouse vs. Elasticsearch](06-场景设计/060-OLAP%20查询与计算对比：ClickHouse%20vs.%20Elasticsearch.md)
 - 2026年2月7日：厘清 ES 的 BKD 树底层实现以及过滤路径，厘清 ES 的两阶段检索，厘清 ES 的多索引结构并行求交集，生产、优化文档 [070- Elasticsearch 实现 cozeloop 实验结果过滤](04-中间件/Elasticsearch/070-%20Elasticsearch%20实现%20cozeloop%20实验结果过滤.md)、[020-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/020-Elasticsearch%20核心数据结构.md)、[040-Elasticsearch 读写链路](04-中间件/Elasticsearch/040-Elasticsearch%20读写链路.md)
 - 2026年2月5日：基于 coze-loop 探索 ClickHouse 的生产实践 [030-ClickHouse 实现 cozeloop 实验结果过滤](04-中间件/ClickHouse/030-ClickHouse%20实现%20cozeloop%20实验结果过滤.md) （待润色）
 - 2026年2月5日：基于 Gemini 整理笔记 [020-ClickHouse 的变更操作详解](04-中间件/ClickHouse/020-ClickHouse%20的变更操作详解.md)
@@ -26,6 +28,7 @@ Welcome Back!
 - [x] 魔法方法、鸭子类型补充学习，enumerate和另一个的区别
 - [ ] coze-loop的数据集版本发布方案，对比Apollo：Apollo怎么做的，coze-loop怎么做的（注意总结 MVCC ，copy-on-write ， 零拷贝，RocketMQ异步链路，冷热查询链路）
 - [ ] 三种 MQ 对比
+- [ ] rabbitmq如何实现负载均衡、仲裁模式下rabbitmq的消费组如何工作
 - [ ] CK 什么时候会用到 CPU 的 SMID
 - [x] ElasticSearch 整理核心数据结构
 - [x] ElasticSearch 整理读写链路
