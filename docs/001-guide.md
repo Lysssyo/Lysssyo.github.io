@@ -56,6 +56,8 @@ Welcome Back!
 - [ ] [K个一组翻转链表 - 迭代法](https://leetcode.cn/problems/reverse-nodes-in-k-group/?envType=study-plan-v2&envId=top-100-liked)
 - [ ] [随机链表的复制](https://leetcode.cn/problems/copy-list-with-random-pointer/?envType=study-plan-v2&envId=top-100-liked)
 - [ ] [中序遍历-迭代法](https://leetcode.cn/problems/binary-tree-inorder-traversal/submissions/697285211/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [中序遍历-迭代法](https://leetcode.cn/problems/kth-smallest-element-in-a-bst/description/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [前序-中序构造树](https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal/description/?envType=study-plan-v2&envId=top-100-liked)
 
 
 ## Quick Reference
