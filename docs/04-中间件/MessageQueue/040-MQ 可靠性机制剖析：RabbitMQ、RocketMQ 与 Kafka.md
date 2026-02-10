@@ -1,6 +1,6 @@
 ---
 date created: 2026-02-10 10:02:49
-date modified: 2026-02-10 13:58:23
+date modified: 2026-02-10 14:40:10
 ---
 # MQ 可靠性机制剖析：RabbitMQ、RocketMQ 与 Kafka
 
@@ -64,7 +64,7 @@ AMQP 协议原生支持事务原语（`tx.select`, `tx.commit`, `tx.rollback`）
 > [!CAUTION] 结论
 > 在追求高并发的现代架构中，**AMQP 事务已极少被使用**。
 
-#### 3.1.2 发布者确认（Publisher Confirms）—— 事实标准
+#### 3.1.2 发布者确认—— 事实标准
 
 为了解决事务的性能问题，RabbitMQ 引入了轻量级的发布者确认机制。
 
@@ -78,7 +78,7 @@ AMQP 协议原生支持事务原语（`tx.select`, `tx.commit`, `tx.rollback`）
 > [!IMPORTANT] 核心洞察
 > **在使用 Quorum Queues 时，发布者确认是客户端与共识系统交互的唯一桥梁**。只有收到 Confirm，客户端才能确信消息不仅到达了 Leader，而且已经被安全地复制到了 Follower 节点，具备了容灾能力。
 
-### 3.2 服务端可靠性：仲裁队列（Quorum Queues）与 Raft
+### 3.2 服务端可靠性：仲裁队列与 Raft
 
 RabbitMQ 4.0 版本正式移除了传统的经典镜像队列（Classic Mirrored Queues），确立了 Quorum Queues 为高可靠场景的唯一选择。理解这一变革对于掌握 RabbitMQ 的可靠性至关重要。
 
@@ -95,6 +95,8 @@ RabbitMQ 4.0 版本正式移除了传统的经典镜像队列（Classic Mirrored
 
 Quorum Queues 基于 Raft 共识算法实现，彻底改变了数据复制方式。
 
+> 参考：[Raft 一致性协议](../../05-分布式/020-Raft%20一致性协议.md)
+
 - **多数派写入：** 一条消息被认为是“已提交”的，当且仅当它被写入了 Leader 的日志，并被复制到了集群中 `(N/2)+1` 个节点的日志中 。
 - **日志复制与快照：** Quorum Queue 的核心是一个仅追加（Append-Only）的日志文件。所有的队列操作（入队、出队、Ack）都是日志条目。为了防止日志无限增长，RabbitMQ 会定期执行快照（Snapshot）并压缩日志。
 - **总是持久化：** 不同于经典队列可选 transient（内存）模式，Quorum Queues 设计之初就是为了数据安全，因此强制要求消息持久化。内存中只保留热数据，冷数据会迅速落盘。
@@ -109,7 +111,7 @@ Quorum Queues 基于 Raft 共识算法实现，彻底改变了数据复制方式
 - **过程**：Leader 必须将 `Msg A` 写入本地磁盘（WAL），并等待集群中**大多数节点**（如 3 节点中的 2 个）也同步写盘成功。
 - **结果**：只有达成“多数派共识”后，Leader 才会向客户端返回 `Ack`。这确保了即使 Leader 立即宕机，数据也已安全存储在其他节点中。
 
-##### 2. “废物不能上位”保障 
+##### 2. “日志完整性”保障 
 
 > 对应机制：**确定性选主**
 
@@ -227,7 +229,7 @@ RocketMQ 的消费端可靠性依赖于严格的 Offset 管理和重试机制。
 
 #### 4.3.1 消费重试与死信
 
-如果消费者处理消息失败（抛出异常或返回 `RECONSUME_LATER`），RocketMQ 不会立即丢弃消息，也不会阻塞队列。
+当 Consumer 消费失败时，它实际上是向 Broker 发送了一个 ACK，告知该消息需要重试。如果 Consumer 挂掉或网络断开导致没有发送 ACK，Broker 会在超时后认为该消息未被消费，也会触发重试（但这种通常是从本地缓存或再次拉取）。
 
 - **阶梯重试：** 消息会被投递到特殊的 `%RETRY%` 队列。Broker 会按照特定的时间间隔（1s, 5s, 10s, 30s... 2h）逐步增加重试延时 。
 - **死信队列（DLQ）：** 当重试次数超过上限（默认 16 次）后，消息被移入死信队列，需人工干预。
@@ -266,7 +268,7 @@ Kafka 生产者的可靠性完全由 `acks` 参数控制，这给了用户极大
 - **CAP 权衡：** 这是一种典型的 CP 行为。系统宁愿牺牲可用性（无法写入），也要保证一致性（防止数据单点存储）。
     
 
-#### 5.1.3 幂等生产者（Idempotent Producer）
+#### 5.1.3 幂等生产者
 
 为了实现**分区内的精确一次**写入，Kafka 引入了幂等性（`enable.idempotence=true`）。
 
@@ -275,43 +277,21 @@ Kafka 生产者的可靠性完全由 `acks` 参数控制，这给了用户极大
 - **生命周期：** 这种保证仅限于单个生产者会话。如果生产者重启，PID 会变化，幂等性重置 。
     
 
-### 5.2 服务端可靠性：日志复制与 Page Cache 哲学
+### 5.2 服务端可靠性：日志复制哲学
 
-Kafka 的存储层设计是大胆且高效的。它极大依赖操作系统的 Page Cache，而不是像 RocketMQ 那样依赖应用层的内存池或 RabbitMQ 的进程堆内存。
-
-#### 5.2.1 操作系统 Page Cache 与 刷盘
-
-Kafka 写入数据时，实际上只是写入了操作系统的 Page Cache（页缓存），并没有同步调用 `fsync`。物理刷盘工作完全交给 Linux 内核的后台线程（`pdflush`）。
-
-- **争议与辩护：** 许多人认为这不安全。但 Kafka 的逻辑是：单个节点的磁盘损坏或掉电是不可避免的，依赖单机 `fsync` 无法解决机房级灾难。真正的可靠性应该来自**多副本复制**。
-- **概率安全：** 只要集群中不同时发生 `Replication Factor` 数量的节点同时断电，数据就是安全的。Page Cache 带来了内存级的写入速度（微秒级），这是 Kafka 高吞吐的核心 。
-    
-
-#### 5.2.2 ISR 机制与高水位（High Water Mark）
+#### 5.2.1 ISR 机制与高水位
 
 Kafka 的复制算法既不是同步复制（太慢），也不是纯异步复制（不安全），而是基于 ISR 的动态复制。
 
 - **LEO (Log End Offset)：** 副本当前写入的最高位点。
 - **HW (High Water Mark)：** ISR 集合中所有副本共享的最小 LEO。
 - **消费者可见性：** 只有 Offset < HW 的消息才对消费者可见。这保证了消费者读到的数据是已经达成共识的，即使 Leader 切换，这部分数据也不会丢失 。
-    
 
-#### 5.2.3 不洁选举（Unclean Leader Election）
+## 5.3 消费者端的可靠性
 
-当 ISR 中的所有副本都宕机，而只剩下一个严重滞后的非 ISR 副本存活时，集群面临艰难抉择：
+**Kafka 原生（Broker 端）完全没有类似于 RocketMQ 失败重试或者死信队列的机制**。
 
-- `unclean.leader.election.enable=false`（默认）：坚持不选主，直到 ISR 成员恢复。保证数据不丢失，但集群长时间不可用。
-- `unclean.leader.election.enable=true`：允许非 ISR 副本成为 Leader。这会导致旧 Leader 上已确认但未同步到该副本的数据**永久丢失**。这是可用性对数据安全性的妥协 。
-    
-
-### 5.3 事务 API：端到端的精确一次
-
-Kafka 的事务（Transactions）功能允许生产者将多条消息发送到多个 Partition，作为一个原子操作提交。
-
-- **场景：** 典型的 "Consume-Process-Produce" 循环（从 Topic A 读，处理，写入 Topic B）。
-- **事务协调器（Transaction Coordinator）：** Broker 内部的一个模块，负责管理事务状态。
-- **事务日志（__transaction_state）：** 所有的事务状态变更（Ongoing, PrepareCommit, CompleteCommit）都作为消息写入这个内部 Topic，享受 Kafka 原生的多副本可靠性。
-- **隔离级别：** 消费者需配置 `isolation.level=read_committed`，Broker 会过滤掉未提交事务的消息（Control Messages），确保下游只处理成功的数据 。
+RocketMQ 的重试和死信机制是其 Broker 端的核心特性，而 Kafka 的设计哲学是“**Log 原语**”，它只负责高性能的消息追加和读取。Kafka Broker 不关心消息是否被消费成功，也不支持“单条消息的延迟投递”。
 
 ---
 

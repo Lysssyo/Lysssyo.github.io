@@ -29,6 +29,7 @@ Welcome Back!
 - [ ] coze-loop的数据集版本发布方案，对比Apollo：Apollo怎么做的，coze-loop怎么做的（注意总结 MVCC ，copy-on-write ， 零拷贝，RocketMQ异步链路，冷热查询链路）
 - [ ] 三种 MQ 对比
 - [ ] 三种 MQ 的可靠性、幂等性、顺序性如何保证
+- [ ] 三种MQ 什么时候读写主从？还是一直都是读主写主吗
 - [ ] rabbitmq如何实现负载均衡、仲裁模式下rabbitmq的消费如何工作
 - [ ] CK 什么时候会用到 CPU 的 SMID
 - [x] ElasticSearch 整理核心数据结构

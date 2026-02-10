@@ -2,6 +2,8 @@
 title: Raft 一致性协议深度解析
 category: 分布式
 tags: [Raft, 一致性协议, 分布式, 共识算法]
+date created: 2026-02-09 19:36:34
+date modified: 2026-02-10 15:59:54
 ---
 
 # Raft 一致性协议
@@ -68,6 +70,44 @@ Raft 使用 **强领导者（Strong Leader）** 模型，集群中同一时刻�
 
 > [!IMPORTANT] 日志匹配特性（Log Matching Property）
 > Raft 强制保证：如果两个日志在相同的索引位置（Index）拥有相同的任期号（Term），那么从头到该索引的所有日志条目都完全相同。
+
+### 1.3 日志截断与追加 (Log Truncation & Appending)
+
+在 Raft 中，Leader 是日志的唯一权威。当 Follower 的日志与 Leader 不一致时（通常是因为 Follower 拥有旧 Leader 未提交的脏数据），Follower 必须 **无条件服从**：强制删除（截断）冲突日志，并追加（复制）Leader 的新日志。
+
+#### 核心机制：AppendEntries 一致性检查
+
+每次 Leader 发送 `AppendEntries RPC` 时，不仅仅是发送新日志，还携带了 **前一条日志** 的指纹，用于连贯性检查：
+
+- **`prevLogIndex`**：新日志条目紧邻的前一个索引值。
+- **`prevLogTerm`**：`prevLogIndex` 处的任期号。
+    
+
+**Follower 的处理逻辑：**
+
+1. **检查指纹**：查找本地日志中是否存在 `prevLogIndex`。
+2. **Term 匹配**：如果存在，检查该处的 Term 是否等于 `prevLogTerm`。
+3. **冲突解决**：
+    
+    - **匹配成功**：保留该位置之前的日志，**追加** 新日志。
+    - **匹配失败**：拒绝请求，Leader 将 **回溯** 并重试，直到找到一致点。
+
+#### 详细回溯算法 (Backtracking)
+
+如果 Follower 落后太多或日志严重冲突，Raft 会通过 `nextIndex` 进行回溯：
+
+1. **探测 (Probe)**：Leader 维护每个 Follower 的 `nextIndex`（预计发送的下一个日志位置）。初始值为 Leader 的最后一条日志 Index + 1。
+2. **失败 (Reject)**：如果 Follower 返回 `False`（因为 `prevLogIndex` 没找到或 Term 不匹配）。
+3. **递减 (Decrement)**：Leader 将该 Follower 的 `nextIndex` 减 1。
+4. **重试 (Retry)**：Leader 重新发送新的 `AppendEntries`（携带更早的 `prevLogIndex`）。
+5. **收敛 (Converge)**：重复上述步骤，直到找到 Leader 和 Follower 日志完全一致的那个点（最坏情况是回溯到 Index 0）。一旦匹配成功，Follower 会 **截断** 冲突点之后的所有数据，并 **追加** Leader 发送过来的所有新数据。
+    
+
+> [!IMPORTANT] 安全性原则 为什么 Follower 删除日志是安全的？ 
+> 因为 Raft 的选举机制（2.1 节提到的）保证了 **被删除的日志绝对不可能已经是 Committed（已提交）状态**。只有未提交的、旧 Term 的脏数据才会被截断。
+
+> [!TIP] 优化提示 实际生产级的 Raft 实现（如 Etcd 的 Raft 库）
+> 通常不会每次只回退 1 个 Index，而是采用 **快速回退（Fast Backtracking）** 机制：Follower 在拒绝时告知 Leader 自己当前冲突 Term 的第一条日志 Index，Leader 可以直接跳过整个冲突 Term，大幅减少 RPC 交互次数。
 
 ---
 
