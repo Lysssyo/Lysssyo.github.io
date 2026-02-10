@@ -360,6 +360,8 @@ RocketMQ 支持使用 SQL92 表达式（如 `a > 10 AND b = 'abc'`）筛选 User
 2. **不一致性风险**：由于各 Consumer 获取元数据的时间不一致，可能导致短时间内分配视图不一致（例如两个 Consumer 认为自己都拥有 Queue A），导致消息重复消费。
 3. **Stop-the-World**：在 Queue 重新分配的过程中，旧的 Consumer 需要释放 Queue 锁，新的 Consumer 需要重新加锁及拉取 Offset。在这个过程中，消费会出现短暂的停顿（抖动），这在数千个 Queue 的大规模场景下尤为明显。
 
+
+
 ### 6.2 消息级负载均衡 (POP 模式)
 
 为了解决 Queue 级负载均衡的僵化和 Rebalance 抖动问题，RocketMQ 5.0 引入了 **POP 消费模式**。这是一个里程碑式的架构升级。

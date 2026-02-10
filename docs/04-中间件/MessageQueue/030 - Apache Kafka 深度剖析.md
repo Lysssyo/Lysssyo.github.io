@@ -1,6 +1,6 @@
 ---
 date created: 2026-02-09 17:23:51
-date modified: 2026-02-10 15:45:24
+date modified: 2026-02-10 20:09:59
 ---
 # Apache Kafka 深度剖析
 
@@ -115,6 +115,19 @@ Consumer Group 是 Kafka 实现发布-订阅与队列模型统一的关键。**�
 
 - **组协调器 (Group Coordinator)**：每个 Consumer Group 在服务端对应一个 Broker 作为 Coordinator。Consumer 通过发送 Heartbeat 维持成员资格。如果超时（`session.timeout.ms`）或未及时 Poll（`max.poll.interval.ms`），Coordinator 会将其踢出，触发 Rebalance 。
 - **协议演进**：其协议经历了从“Eager”到“Incremental Cooperative”的重大演进 。现代的增量 Rebalance 协议允许在 Rebalance 过程中，消费者继续消费那些未被重新分配的分区，大大减少了 "Stop-the-World" 的时间。
+
+**示例：**
+
+1. **断开连接：** 消费者进程崩溃或网络断开。
+2. **停止心跳：** 消费者不再向 Broker 的 **Group Coordinator（组协调器）** 发送心跳。
+3. **等待超时 (`session.timeout.ms`)：** Coordinator 不会立即行动，它会等待，直到超时时间（默认 10秒或 45秒，取决于版本）过去。
+4. **判定死亡：** Coordinator 判定该消费者已死。
+5. **触发重平衡 (Rebalance)：**
+    - Coordinator 通知组内其他存活的消费者：“有人挂了，大家重新分配分区（Partition）”。
+    - 挂掉的消费者负责的 Partition 被分配给新的消费者。
+6. **消息重发（重复消费）：**
+    - 新的消费者从 Broker 获取该 Partition 的 **Last Committed Offset**（最后提交的偏移量）。
+    - 因为挂掉的消费者还没来得及提交 Offset，新消费者会**重新拉取**那批消息并重新消费。
 
 ---
 
