@@ -1,3 +1,7 @@
+---
+date created: 2026-02-09 11:26:32
+date modified: 2026-02-10 13:59:22
+---
 如果说 RocketMQ 的 NameServer 是 **"极简主义 + AP模型 (高可用)"**，那么 Kafka 的元数据管理（Controller）则是 **"强一致性 + CP模型 (强一致)"**。
 
 Kafka 的架构经历了一次巨大的变革（去 ZooKeeper 化），因此我们需要分 **"经典架构 (ZooKeeper)"** 和 **"现代架构 (KRaft)"** 两个阶段来看，但核心逻辑都是 **强一致性协调**。
@@ -88,9 +92,7 @@ RocketMQ 的 NameServer 只存简单的路由信息（Topic A 在 Broker B 上�
 但 Kafka 的 Controller 权力极大，它管理着：
 
 - **Leader 选举:** 哪个 Partition 是主？
-    
 - **ISR 列表:** 哪些副本是同步的？
-    
 - **事务状态:** 这个事务提交了吗？
     
 
@@ -99,11 +101,8 @@ RocketMQ 的 NameServer 只存简单的路由信息（Topic A 在 Broker B 上�
 #### 3.2 经典架构：ZooKeeper (已逐步淘汰)
 
 - **角色:** ZooKeeper 充当外部的强一致性数据库。
-    
 - **痛点:**
-    
     - **运维重:** 你得维护两套集群 (Kafka + ZK)。
-        
     - **性能瓶颈:** ZK 不适合存大量数据。当 Kafka 分区数达到百万级时，Controller 启动时从 ZK 加载所有元数据会极其缓慢，导致集群恢复时间长。
         
 
@@ -112,16 +111,12 @@ RocketMQ 的 NameServer 只存简单的路由信息（Topic A 在 Broker B 上�
 自 Kafka 2.8+ 引入，3.3+ 标记为生产就绪。
 
 - **自我管理:** 移除了 ZooKeeper。
-    
 - **元数据即日志:** Kafka 将集群的元数据（Topic 创建、参数修改等）看作是一条条特殊的 **消息**。
-    
 - **Internal Topic:** 有一个内部 Topic 叫 `__cluster_metadata`。Controller 节点也是通过 Raft 协议，把元数据写入这个 Topic。
-    
 - **快照 (Snapshot):** 所有的 Broker 都通过重放这个 Topic 的日志来同步集群状态。
     
 
 ### 4. 总结
 
 - **RocketMQ NameServer:** 是一个 **"公告板"**。大家把信息贴上去，每个人看到的可能略有延迟，但最终会看到。坏了一个板子不影响另一个。
-    
 - **Kafka Controller (KRaft):** 是一个 **"议会"**。所有决策必须经过投票（Raft），一旦通过，必须严格执行。议会必须有超过半数人在线才能工作。

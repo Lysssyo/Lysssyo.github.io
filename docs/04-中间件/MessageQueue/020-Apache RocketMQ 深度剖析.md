@@ -2,6 +2,8 @@
 title: Apache RocketMQ 深度剖析
 category: 中间件
 tags: [RocketMQ, 消息队列, 架构, 分布式]
+date created: 2026-02-08 21:37:28
+date modified: 2026-02-10 13:57:58
 ---
 
 # Apache RocketMQ 深度解析
@@ -70,13 +72,13 @@ Producer 负责构建业务消息并发送给 Broker。RocketMQ 的 Producer 是
 
 ### 2.4 Consumer：消息消费者
 
-Consumer 从 Broker 拉取消息并进行消费。RocketMQ 提供了两种主要的消费模式和三种消费者类型。
+**Consumer 从 Broker 拉取消息并进行消费**。RocketMQ 提供了两种主要的消费模式和三种消费者类型。
 
 - **消费模式**：
     - **集群消费（Clustering）**：同一个 Consumer Group 下的多个 Consumer 实例共同分担消费 Topic 的所有消息。一条消息只会被组内的一个 Consumer 消费。这是最常见的负载均衡模式。
     - **广播消费（Broadcasting）**：同一个 Consumer Group 下的每个 Consumer 实例都会消费 Topic 的全量消息。适用于配置推送、缓存刷新等场景。
 - **消费者类型**：
-    - **PushConsumer**：封装了拉取逻辑，通过长轮询（Long Polling）机制实现准实时的消息推送感。实际上底层仍然是 Pull，但对用户呈现为回调接口。
+    - **PushConsumer**：封装了拉取逻辑，**通过长轮询（Long Polling）机制实现准实时的消息推送感**。实际上底层仍然是 Pull，但对用户呈现为回调接口。
     - **PullConsumer**：用户自主控制拉取进度和位点，灵活性高但开发复杂度大。
     - **SimpleConsumer (5.0)**：5.0 版本引入的轻量级客户端，将复杂的重平衡逻辑下沉到 Broker 端，客户端仅负责简单的 Receive、Ack 操作，更适合 Serverless 场景。
 
@@ -95,15 +97,10 @@ Consumer 从 Broker 拉取消息并进行消费。RocketMQ 提供了两种主要
 消费者请求时，带的是 **逻辑偏移量 (Logical Offset)**。
 
 - **消费者说**：“我要读 `Queue-1` 的 **第 500 条** 消息。”
-    
 - **Broker 做**：
-    
     1. 找到 `Queue-1` 的 `ConsumeQueue` 文件。
-        
     2. 跳过前 $499 \times 20$ 字节，直接读取第 500 个条目。
-        
     3. 拿到其中的 `CommitLog Offset`（比如 1024000）。
-        
     4. 去 `CommitLog` 文件里的 1024000 位置读取真实数据。
         
 
@@ -116,11 +113,8 @@ Consumer 从 Broker 拉取消息并进行消费。RocketMQ 提供了两种主要
 如果消费者发起请求时，Broker 发现 **“没有新消息”**（消费进度追上了生产进度），Broker **不会** 立即返回“空”，而是：
 
 1. **挂起请求**：Broker 把这个请求 Hold 住，暂时不回复。
-    
 2. **等待**：默认最长等待 15 秒（可配置）。
-    
 3. **唤醒**：一旦有新消息写入 `CommitLog`，ReputMessageService（分发服务）会通知 Broker。
-    
 4. **立刻返回**：Broker 马上激活刚才挂起的请求，把新消息推给消费者。
     
 
@@ -131,15 +125,10 @@ Consumer 从 Broker 拉取消息并进行消费。RocketMQ 提供了两种主要
 一个 Topic可能有 4 个 Queue，而消费者组可能有 2 个消费者实例（机器 A 和 B）。它们怎么分配？
 
 - **RebalanceService**：每个消费者启动时，都会启动一个重平衡线程。
-    
 - **策略**：默认采用平均分配算法。
-    
     - 总共 4 个 Queue，2 个 Consumer。
-        
     - **机器 A 计算**：我是第 1 个，所以我负责 `Queue 0` 和 `Queue 1`。
-        
     - **机器 B 计算**：我是第 2 个，所以我负责 `Queue 2` 和 `Queue 3`。
-        
 - **结果**：机器 A 只会向 Broker 请求 Queue 0/1 的数据。
 
 消费者消费完消息后，必须向 Broker 发送 ACK。
