@@ -197,11 +197,11 @@ RocketMQ 的生产者客户端（Producer SDK）内置了丰富的容错逻辑�
 
 #### 4.1.1 发送模式的权衡
 
-[Producer：消息生产者](020-Apache%20RocketMQ%20深度剖析.md#2.3%20Producer：消息生产者)
+[Producer：消息生产者](020%20-%20Apache%20RocketMQ%20深度剖析.md#2.3%20Producer：消息生产者)
 
 #### 4.1.2 事务消息：解决“双写”一致性难题
 
-[事务消息 (Transactional Messages)](020-Apache%20RocketMQ%20深度剖析.md#5.1%20事务消息%20(Transactional%20Messages))
+[事务消息 (Transactional Messages)](020%20-%20Apache%20RocketMQ%20深度剖析.md#5.1%20事务消息%20(Transactional%20Messages))
 
 这种机制保证了消息系统与业务数据库的**最终一致性**，完美解决了分布式事务中的“悬挂事务”问题。
 
@@ -217,11 +217,11 @@ RocketMQ 采用混合型存储结构。**所有 Topic 的消息都顺序写入�
 
 #### 4.2.2 刷盘策略（Flush Policy）
 
-[刷盘策略 (Flush Policy)](020-Apache%20RocketMQ%20深度剖析.md#3.3%20刷盘策略%20(Flush%20Policy))
+[刷盘策略 (Flush Policy)](020%20-%20Apache%20RocketMQ%20深度剖析.md#3.3%20刷盘策略%20(Flush%20Policy))
 
 #### 4.2.3 高可用一致性架构
 
-[高可用与一致性架构演进](020-Apache%20RocketMQ%20深度剖析.md#4.%20高可用与一致性架构演进)
+[高可用与一致性架构演进](020%20-%20Apache%20RocketMQ%20深度剖析.md#4.%20高可用与一致性架构演进)
 
 ### 4.3 消费端可靠性：重试队列与位点管理
 
