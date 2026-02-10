@@ -45,3 +45,14 @@ RocketMQ 源于阿里，设计上介于 RabbitMQ 和 Kafka 之间。
 - **事务消息**：RocketMQ 原生支持 2PC 事务消息（半消息+回查机制），能够保证本地事务与消息发送的最终一致性。RabbitMQ 虽然支持事务（Tx），但性能极差，通常推荐使用 Publisher Confirms 替代 。
     
 - **架构**：RocketMQ 去除了 Zookeeper 依赖（早期），使用 NameServer，架构轻量。RabbitMQ 依赖 Erlang 分布式，运维复杂度相对较高。
+
+
+| **特性维度**   | **RabbitMQ (Quorum)** | **RocketMQ (Sync/DLedger)**      | **Kafka (Standard)**       |
+| ---------- | --------------------- | -------------------------------- | -------------------------- |
+| **一致性算法**  | **Raft** (强一致)        | **Raft** (DLedger) / 主从同步        | **ISR** (动态同步集合)           |
+| **单机持久化**  | **WAL + Fsync** (批处理) | **Sync Flush** (强) / Async Flush | **OS Page Cache** (弱，依赖复制) |
+| **数据重复**   | 极低 (Raft 保证)          | 可能 (At-Least-Once)               | 无 (幂等性开启时)                 |
+| **事务支持**   | AMQP 事务 (极慢)          | **2PC 事务消息** (最终一致性)             | **流式事务** (Exactly-Once)    |
+| **网络分区行为** | **CP** (暂停写入，保数据)     | **CP** (DLedger 模式)              | **可配置** (默认 CP，可降级为 AP)    |
+| **消费模型**   | Push (预取控制)           | Pull (长轮询)                       | Pull (批量拉取)                |
+| **最大优势**   | 复杂路由下的数据安全            | 业务与消息的事务一致性                      | 海量吞吐下的可配置可靠性               |
