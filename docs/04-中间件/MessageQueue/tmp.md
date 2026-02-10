@@ -198,9 +198,7 @@ spring:
     3. **到了交换机且路由成功**
         ![image-20240821203202210.png](https://keith-knowledge-base.oss-cn-hongkong.aliyuncs.com/image-20240821203202210.png)
 
-> [!NOTE] 注意
-> 1. 定义`ReturnCallback`与`ConfirmCallback`没有先后之分，不一定都存在。
-> 2. 开启生产者确认比较消耗MQ性能，一般不建议开启。触发确认的情况中路由失败和交换机名称错误往往是编程错误导致，可以在开发层面避免。因此只有对消息可靠性要求非常高的业务才需要开启，且仅需开启ConfirmCallback处理nack即可。
+
 
 ---
 

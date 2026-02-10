@@ -20,7 +20,7 @@ tags: [RocketMQ, 消息队列, 架构, 分布式]
 
 RocketMQ 的整体架构采用了 **无共享（Shared-Nothing）** 的设计理念，主要由四大核心组件构成：NameServer、Broker、Producer 和 Consumer。这种架构保证了各组件可以独立扩展，消除了单点故障，并最大限度地降低了组件之间的耦合度。
 
-![RocketMQ部署架构](https://keith-knowledge-base.oss-cn-hongkong.aliyuncs.com/RocketMQ%E9%83%A8%E7%BD%B2%E6%9E%B6%E6%9E%84-ee0435f80da5faecf47bca69b1c831cb.png)
+![image.png](https://keith-knowledge-base.oss-accelerate.aliyuncs.com/20260209213517178.png)
 
 ### 2.1 NameServer：轻量级服务发现与路由管理
 
@@ -45,7 +45,7 @@ Broker 是 RocketMQ 最核心的组件，负责消息的接收、存储、分发
 
 #### 2.2.1 角色划分与职责
 
-![Broker 角色交互](https://keith-knowledge-base.oss-cn-hongkong.aliyuncs.com/Gemini_Generated_Image_woygjnwoygjnwoyg.png)
+![image.png](https://keith-knowledge-base.oss-accelerate.aliyuncs.com/20260209213455421.png)
 
 - **Master**：负责处理 Producer 的写入请求和 Consumer 的读取请求。
 - **Slave**：主要负责数据备份。在默认情况下，Consumer 也会从 Master 拉取数据。但当 Master 负载过高或物理内存吃紧（系统检测到物理内存占用超过阈值，通常是 40%）时，Master 会建议 Consumer 从 Slave 拉取数据，从而减轻 Master 的读压力。
@@ -89,6 +89,8 @@ RocketMQ 的高性能在于其独特且精细优化的存储设计。它采用�
 ### 3.1 存储文件结构体系
 
 RocketMQ 的存储目录结构严谨，主要由三类核心文件构成：CommitLog、ConsumeQueue 和 IndexFile。它们相互配合，构成了 RocketMQ 高性能读写的基石。
+
+![image.png](https://keith-knowledge-base.oss-accelerate.aliyuncs.com/20260209213625001.png)
 
 #### 3.1.1 CommitLog：顺序写文件
 
