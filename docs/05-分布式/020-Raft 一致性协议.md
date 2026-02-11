@@ -3,7 +3,7 @@ title: Raft 一致性协议深度解析
 category: 分布式
 tags: [Raft, 一致性协议, 分布式, 共识算法]
 date created: 2026-02-09 19:36:34
-date modified: 2026-02-10 15:59:54
+date modified: 2026-02-11 10:41:43
 ---
 
 # Raft 一致性协议

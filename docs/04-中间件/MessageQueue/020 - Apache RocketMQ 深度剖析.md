@@ -3,7 +3,7 @@ title: Apache RocketMQ 深度剖析
 category: 中间件
 tags: [RocketMQ, 消息队列, 架构, 分布式]
 date created: 2026-02-08 21:37:28
-date modified: 2026-02-10 13:57:58
+date modified: 2026-02-11 00:14:44
 ---
 
 # Apache RocketMQ 深度解析
@@ -204,17 +204,53 @@ RocketMQ 将 CommitLog 和 ConsumeQueue 文件通过 Java NIO 的 `MappedByteBuf
 
 ### 3.3 刷盘策略 (Flush Policy)
 
-RocketMQ 支持两种刷盘策略，以在性能与数据可靠性之间提供灵活的选择。
+RocketMQ 支持两种刷盘策略。**注意：** 刷盘策略的选择与底层存储模式（传统 vs DLedger）密切相关。
 
-| **策略** | **机制描述** | **优点** | **缺点** | **适用场景** |
-| :--- | :--- | :--- | :--- | :--- |
-| **同步刷盘 (Sync Flush)** | 消息写入内存后，Broker 立即调用 `fsync` 强行落盘，刷盘成功后才返回 ACK。 | 数据可靠性极高，断电不丢数据。 | 吞吐量低，延迟高（受限于磁盘 IOPS）。 | 金融核心交易、数据强一致性场景。 |
-| **异步刷盘 (Async Flush)** | 消息写入 PageCache 后立即返回 ACK，后台线程定期（默认 500ms）执行刷盘。 | 极高的吞吐量和微秒级延迟。 | 服务器断电可能导致 PageCache 中少量数据丢失。 | 日志收集、非核心通知、允许少量丢失的场景。 |
+#### 3.3.1 基础策略对比
 
-- **TransientStorePool 优化**：在异步刷盘模式下，RocketMQ 还可以开启 `TransientStorePool`（堆外内存池）。此时，数据先写入堆外内存（DirectByteBuffer），再异步 Commit 到 FileChannel（PageCache），最后 Flush 到磁盘。这种机制实现了“读写分离”：写入走堆外内存，读取走 PageCache，有效减少了 GC 压力并避免了 PageCache 锁竞争。
+|**策略**|**机制描述**|**优点**|**缺点**|**适用场景**|
+|---|---|---|---|---|
+|**同步刷盘 (Sync Flush)**|消息写入内存后，Broker 立即调用 `fsync` 强行落盘，刷盘成功后才返回 ACK。|数据可靠性极高，断电不丢数据。|吞吐量低，延迟高（受限于磁盘 IOPS）。|金融核心交易、数据强一致性场景。|
+|**异步刷盘 (Async Flush)**|消息写入 PageCache 后立即返回 ACK，后台线程定期（默认 500ms）执行刷盘。|极高的吞吐量和微秒级延迟。|服务器断电可能导致 PageCache 中少量数据丢失。|日志收集、非核心通知、允许少量丢失的场景。|
+
+#### 3.3.2 模式差异与优化
+
+- **传统主从模式下的优化 (`TransientStorePool`)**：
+    
+    在 **异步刷盘** 模式下，建议开启 `TransientStorePool`（堆外内存池）。
+    
+    - **机制：** 数据先写入堆外内存 (DirectByteBuffer) -> 异步 Commit 到 FileChannel (PageCache) -> 异步 Flush 到磁盘。
+    - **优势：** 实现“读写分离”（写入走堆外，读取走 PageCache），有效减少 GC 压力并避免 PageCache 锁竞争。
+- **DLedger (Raft) 模式下的特殊性**：
+    - **推荐配置：** 强烈建议使用 **异步刷盘 (Async Flush)**。
+    - **理由：** Raft 的多副本机制（Majority Replication）已保证数据在多数节点落盘才提交。即使单机掉电，只要多数派存活，数据即安全。若在 DLedger 下强行开启同步刷盘，性能会因 "Raft RPC + 磁盘 IO" 双重等待而急剧下降。
+    - **限制：** `TransientStorePool` 优化机制在 DLedger 存储层 (`DLedgerMmapFileStore`) 中 **不生效**。
 
 ---
 
+### 3.4 复制策略 (Replication Policy)
+
+RocketMQ 的复制策略取决于架构模式。**DLedger 模式会完全覆盖并忽略传统的 `brokerRole` 配置。**
+
+#### 3.4.1 传统主从架构 (Master-Slave)
+
+依靠 `brokerRole` 参数控制，属于静态的主从复制。
+
+|**模式**|**配置**|**机制**|**可靠性**|**Master 挂掉后果**|
+|---|---|---|---|---|
+|**异步复制**|`ASYNC_MASTER`|Master 写成功即返回，Slave 异步拉取。|**中**|**丢消息**。Master 未同步的数据丢失；Slave 无法自动晋升。|
+|**同步复制**|`SYNC_MASTER`|Master 写成功 + **至少 1 个 Slave** 写成功才返回。|**高**|**不丢消息**。但 Master 挂掉后集群变为“只读”，需人工恢复写入。|
+
+#### 3.4.2 DLedger (Raft) 架构
+
+依靠 `enableDLegerCommitLog=true` 开启，属于动态的共识复制。
+
+- **复制机制：** **多数派写入 (Quorum Write)**。
+    - 消息必须被写入 Leader 日志，并复制到集群中 **(N/2)+1** 个节点（包括 Leader 自身）才算提交。
+- **配置失效：** 此模式下，`ASYNC_MASTER` 和 `SYNC_MASTER` 配置 **失效**。
+- **可靠性与可用性：**
+    - **数据不丢失：** 只要收到 ACK，说明多数节点已有数据。
+    - **自动故障转移 (Failover)：** Master (Leader) 挂掉后，集群会在几秒内自动选出拥有最新日志的 Slave (Follower) 成为新 Leader，**恢复写入能力**。
 ## 4. 高可用与一致性架构演进
 
 RocketMQ 的高可用（HA）架构经历了从主从复制到基于 Raft 一致性协议的演进，并在 5.0 版本中推出了更加灵活的自动主从切换机制。
@@ -228,13 +264,14 @@ RocketMQ 的高可用（HA）架构经历了从主从复制到基于 Raft 一致
     - **异步复制 (Async Replication)**：Master 写入成功即返回，后台线程异步传输给 Slave。性能好，但 Master 宕机可能丢失少量未同步的数据。
 - **局限性**：传统的主从架构无法实现 **自动故障转移（Auto Failover）**。当 Master 宕机时，Consumer 可以自动切换到 Slave 消费（读高可用），但 Producer 无法继续写入（写不可用），必须等待运维人员人工介入重启或切换配置。
 
+	
 ### 4.2 DLedger（Raft 模式）
 
 为了解决自动故障切换问题，RocketMQ 4.5 引入了基于 **DLedger** 存储组件的架构。
 
 DLedger 基于 Raft 共识算法，实现了日志复制、Leader 选举和状态机同步。每个 Broker 组由至少三个节点组成。所以，DLedger 类似于 RabbitMQ 的仲裁队列。
 
-> 参考： [Quorum Queues 的 Raft 实现](040%20-%20MQ%20可靠性机制剖析：RabbitMQ、RocketMQ%20与%20Kafka.md#3.2.2%20Quorum%20Queues%20的%20Raft%20实现) 以及 [Raft 一致性协议](../../05-分布式/020-Raft%20一致性协议.md)
+ 参考： [Quorum Queues 的 Raft 实现](040%20-%20MQ%20可靠性机制剖析：RabbitMQ、RocketMQ%20与%20Kafka.md#3.2.2%20Quorum%20Queues%20的%20Raft%20实现) 以及 [Raft 一致性协议](../../05-分布式/020-Raft%20一致性协议.md)
 
 > [!TIP] 挑战
 > DLedger 模式要求完全替换原有的 CommitLog 存储格式，升级成本较高，且对原有文件系统的侵入性较大，导致其普及率受到一定影响。
@@ -354,13 +391,69 @@ RocketMQ 支持使用 SQL92 表达式（如 `a > 10 AND b = 'abc'`）筛选 User
 
 #### 6.1.1 Rebalance 及其影响
 
-当 Consumer 上线/下线、Broker 扩缩容导致 Queue 数量变化时，会触发 Rebalance。
+RocketMQ 的 Rebalance（重平衡）机制设计得非常“独特”且“去中心化”。
 
-1. **客户端驱动**：每个 Consumer 实例独立运行 Rebalance 线程（默认 20s 一次），从 NameServer 获取最新的元数据，并在本地计算分配结果。
-2. **不一致性风险**：由于各 Consumer 获取元数据的时间不一致，可能导致短时间内分配视图不一致（例如两个 Consumer 认为自己都拥有 Queue A），导致消息重复消费。
-3. **Stop-the-World**：在 Queue 重新分配的过程中，旧的 Consumer 需要释放 Queue 锁，新的 Consumer 需要重新加锁及拉取 Offset。在这个过程中，消费会出现短暂的停顿（抖动），这在数千个 Queue 的大规模场景下尤为明显。
+与 Kafka 把分区分配逻辑交给 Broker 端（Coordinator）计算不同，RocketMQ 的 Rebalance 是 **由每个消费者客户端（Consumer Client）自己独立计算的**。
 
+##### 6.1.1.1 核心流程：双重触发与客户端自治
 
+RocketMQ 客户端内部有一个名为 `RebalanceService` 的线程，它负责根据当前消费者组的变化，重新计算每个消费者应该负责哪些队列。
+
+**1. 触发机制：定时保底 + 事件驱动**
+
+Rebalance 的触发不仅仅依赖定时轮询，还包含 Broker 的主动通知：
+
+- **定时轮询（保底）：** `RebalanceService` 默认每 **20 秒** 自动执行一次。即使网络通知丢失，最终也能通过轮询达成一致。
+- **事件驱动（加速）：** 当 Consumer 上线或下线（宕机）时，Broker 感知到消费者列表变化，会 **立即** 向组内所有存活的 Consumer 发送通知。客户端收到通知后，不等待 20 秒周期，**立即唤醒** `RebalanceService` 执行重平衡。
+    
+
+**2. 执行步骤：去中心化的共识达成** 
+
+当 `RebalanceService` 被唤醒后，执行以下标准流程：
+
+- **Step 1: 获取全局信息** 客户端从 NameServer/Broker 拉取两个核心数据：
+    - `mqAll`：该 Topic 下所有的 MessageQueue（如 q0, q1, q2, q3）。
+    - `cidAll`：当前消费者组内所有存活的 Consumer ID（如 c1, c2）。
+- **Step 2: 排序 (Sorting) —— 关键一步** **这是确保“去中心化”不出乱子的核心。** 客户端拿到 `mqAll` 和 `cidAll` 后，**必须**先对它们进行排序。
+    - _原因：_ 不同客户端拉取到的列表顺序可能因网络传输而不同。
+    - _后果：_ 如果不排序，A 认为列表是 `[A, B]`，B 认为列表是 `[B, A]`，会导致分配策略计算结果冲突（如抢占同一个队列或遗漏队列）。
+    - _作用：_ 排序保证了所有客户端基于 **完全一致的视图** 进行后续计算。
+- **Step 3: 执行分配策略** 调用 `AllocateMessageQueueStrategy`（如平均分配、环形分配），根据自己在 `cidAll` 中的位置，计算出“我”应该负责哪些队列。
+- **Step 4: 更新执行**
+    - **新增队列：** 创建 ProcessQueue，向 Broker 发起 Pull 请求（若是顺序消费，需先向 Broker 申请锁）。
+    - **移除队列：** 停止拉取，持久化 Offset，移除 ProcessQueue。
+
+**为什么 RocketMQ 不像 Kafka 那样搞个 Coordinator 统一分配？**
+
+**优点**
+
+1. **Broker 压力小：** Broker 不需要进行复杂的计算，也不需要维护分配状态，它只负责存储消费者列表。所有的计算压力都分散到了客户端。
+2. **无状态设计：** 任何一个 Broker 挂了，只要其他 Broker 有元数据，客户端就能继续计算。
+    
+
+**缺点**
+
+1. **短暂的消息重复 (Duplicate Consumption)：**
+    
+    - 由于是每 20 秒轮询一次，不同客户端感知到“消费者上线/下线”的时间点可能有 **几秒钟的偏差**。
+    - **例子：** 新加了一个 Consumer c3。c1 感知到了，让出了 q0；但 c2 还没感知到，还在消费 q0。这几秒内，q0 会被 c2 和 c3 同时消费。
+    - 这就是为什么 RocketMQ 强调 **消费幂等性** 的根本原因之一。
+        
+2. **脑裂风险 (Inconsistent View)：**
+    
+    - 如果网络分区，导致 c1 看到的列表是 `[c1, c2]`，而 c2 看到的列表是 `[c2]`（c1 没连上 Broker），那么分配结果就会完全错误，可能导致某些队列没人消费，或者某些队列被重复消费。
+        
+
+##### 6.1.1.3 顺序消费的特殊处理
+
+你可能会问：“如果是顺序消费，两个人同时抢一个队列，顺序不就乱了吗？”
+
+RocketMQ 对 **顺序消息 (Orderly)** 做了特殊保护：**分布式锁**。
+
+- 在 Rebalance 算出结果后，消费者**不能立刻消费**。
+- 它必须向 Broker 发起一个 `lockBatchMQ` 请求，申请：“这个队列归我了，请锁住它”。
+- 只有 Broker 返回“锁定成功”，消费者才开始拉取消息。
+- Broker 会维护这个锁（有超时时间），确保同一时刻只有一个客户端能拉取该队列。
 
 ### 6.2 消息级负载均衡 (POP 模式)
 
