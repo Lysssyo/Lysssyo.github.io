@@ -60,6 +60,7 @@ Welcome Back!
 - [ ] [中序遍历-迭代法](https://leetcode.cn/problems/binary-tree-inorder-traversal/submissions/697285211/?envType=study-plan-v2&envId=top-100-liked)
 - [ ] [中序遍历-迭代法](https://leetcode.cn/problems/kth-smallest-element-in-a-bst/description/?envType=study-plan-v2&envId=top-100-liked)
 - [ ] [前序-中序构造树](https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal/description/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [路径之和](https://leetcode.cn/studyplan/top-100-liked/)
 
 
 ## Quick Reference

@@ -180,6 +180,12 @@
   transition: background-color 0.2s;
 }
 
+.VPSidebarItem .text {
+  white-space: normal !important; /* 核心修改：允许长标题换行 */
+  line-height: 1.4;
+  padding: 4px 0;
+}
+
 .VPSidebarItem .item:hover {
   background-color: var(--vp-c-bg-mute);
 }
