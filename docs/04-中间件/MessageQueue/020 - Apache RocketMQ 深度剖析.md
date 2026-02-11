@@ -326,6 +326,65 @@ Controller 是一个独立的元数据管理组件，**负责维护 Broker 集�
     4. 通过 NameServer 通知客户端路由变更。
 - **Epoch 数据对齐**：为了解决主从切换时的数据一致性问题，引入了 `Epoch` 和 `StartOffset` 的概念。每当 Master 切换，Epoch 加 1。Slave 在截断日志时，利用 Epoch 标记来对齐数据，确保与新 Master 的日志一致。这类似于 Raft 的日志截断逻辑，但不需要全套 DLedger 存储，从而在保留 CommitLog 高性能的同时实现了强一致性切换。
 
+### 4.4 高可用架构的配置“开关”与形态切换
+
+RocketMQ 提供了三种并存的高可用架构，开发者必须在部署 Broker 时的 `broker.conf` 配置文件中通过特定的开关决定其运行形态。
+
+#### 4.4.1 传统主从架构 (Master-Slave) 配置
+
+这是最基础的模式，支持 4.x 和 5.x。其特征是静态绑定。
+
+- **生效条件**：`enableDLegerCommitLog` 和 `enableControllerMode` 均保持默认值（false）。
+- **核心配置**：
+  ```properties
+  # Master 节点
+  brokerId = 0                # 0 代表 Master
+  brokerRole = SYNC_MASTER    # 或 ASYNC_MASTER
+  
+  # Slave 节点
+  brokerId = 1                # >0 代表 Slave
+  brokerRole = SLAVE
+  ```
+
+#### 4.4.2 DLedger (Raft) 架构配置
+
+引入于 4.5 版本，用于实现基于 Raft 的共识选主。
+
+- **生效条件**：开启 `enableDLegerCommitLog = true` 并配置 `dLegerPeers`。
+- **核心配置**：
+  ```properties
+  enableDLegerCommitLog = true
+  dLegerGroup = ROCKETMQ_BROKER_0
+  dLegerPeers = n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913
+  dLegerSelfId = n0
+  ```
+- **注意**：在此模式下，原有的 `brokerId` 和 `brokerRole` 配置将失效，身份由 Raft 投票决定。
+
+#### 4.4.3 Controller (自动切换) 架构配置
+
+5.0 版本的推荐模式，兼顾性能与运维自动化。
+
+- **生效条件**：开启 `enableControllerMode = true` 且部署了 Controller 组件。
+- **核心配置**：
+  ```properties
+  enableControllerMode = true
+  controllerAddr = 127.0.0.1:9876
+  # 无需硬编码 brokerId=0，由 Controller 动态分配
+  ```
+
+#### 4.4.4 三种形态对比与迁移坑点
+
+| **形态** | **核心开关** | **Master 决策者** | **存储格式** | **自动容灾** | **推荐指数** |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **传统主从** | `brokerRole` | 静态配置文件 | 标准 CommitLog | ❌ 需人工 | ⭐⭐ |
+| **DLedger** | `enableDLegerCommitLog` | Raft 多数派投票 | Raft 专用格式 | ✅ 自动 | ⭐⭐⭐ |
+| **Controller** | `enableControllerMode` | Controller 组件 | 标准 CommitLog | ✅ 自动 | ⭐⭐⭐⭐⭐ |
+
+> [!WARNING] 特别提醒：迁移坑点
+> 这三种模式的数据文件格式（尤其是 DLedger 与标准模式之间）**不完全兼容**。
+> - 从传统模式切换到 DLedger，或从 DLedger 切回 Controller，通常需要**清空数据重新部署**。
+> - 系统不支持在运行时动态切换架构，必须修改配置并重启进程。
+
 ---
 
 ## 5. 高级消息特性实现原理

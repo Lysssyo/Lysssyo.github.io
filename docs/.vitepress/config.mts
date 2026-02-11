@@ -104,6 +104,10 @@ export default withMermaid(defineConfig({
   themeConfig: {
     siteTitle: 'Keith\'s Knowledge Base',
     logo: logoDataUrl,
+
+    outline: {
+      level: 'deep'
+    },
     
     nav: [
       { text: 'Home', link: '/' },

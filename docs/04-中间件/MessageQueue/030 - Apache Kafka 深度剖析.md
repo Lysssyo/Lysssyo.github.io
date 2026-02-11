@@ -52,6 +52,8 @@ Broker 是 Kafka 集群的物理节点，负责数据的持久化与副本同步
 
 Producer 负责构建业务消息并发送给 Broker。
 
+[5.1 生产端可靠性：Acks、ISR 与 幂等性](040%20-%20MQ%20可靠性机制剖析：RabbitMQ、RocketMQ%20与%20Kafka.md#5.1%20生产端可靠性：Acks、ISR%20与%20幂等性)
+
 #### 2.3.1 发送模式与缓冲池
 
 Kafka Producer 是线程安全的，其内部包含一个主线程和一个后台 I/O 线程（Sender Thread）。
