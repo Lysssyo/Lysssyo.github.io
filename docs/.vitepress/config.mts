@@ -156,6 +156,49 @@ export default withMermaid(defineConfig({
           }
         }
       })
+      // 保存默认的链接渲染函数
+      const defaultRender = md.renderer.rules.link_open || function(tokens, idx, options, env, self) {
+        return self.renderToken(tokens, idx, options);
+      };
+
+      md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+        const token = tokens[idx];
+        const hrefIndex = token.attrIndex('href');
+
+        if (hrefIndex >= 0) {
+          const hrefAttr = token.attrs[hrefIndex];
+          const url = hrefAttr[1];
+
+          // 只处理包含 # 的内部链接 (排除 http 开头的外部链接)
+          if (url.includes('#') && !url.startsWith('http')) {
+            const [path, hash] = url.split('#');
+            
+            if (hash) {
+              // 1. 解码：把 %20 变回空格，把 %E4 变回中文
+              const decoded = decodeURIComponent(hash);
+              
+              // 2. 模拟 VitePress 默认的 ID 生成规则 (slugify)
+              let newHash = decoded
+                .toLowerCase()
+                .replace(/\s+/g, '-')      // 空格 -> 横线
+                .replace(/\./g, '-')       // 点号 -> 横线 (解决 3.2.4 的问题)
+                .replace(/-+/g, '-')       // 多个横线 -> 一个横线
+                .replace(/^-+|-+$/g, '');  // 去掉首尾横线
+
+              // 3. 关键：如果是数字开头，VitePress 默认会加下划线前缀
+              if (/^\d/.test(newHash)) {
+                newHash = '_' + newHash;
+              }
+
+              // 4. 重写 href 属性
+              hrefAttr[1] = `${path}#${newHash}`;
+            }
+          }
+        }
+
+        // 继续执行默认渲染
+        return defaultRender(tokens, idx, options, env, self);
+      };
     }
   }
 }))
