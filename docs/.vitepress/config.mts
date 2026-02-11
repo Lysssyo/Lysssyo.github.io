@@ -154,7 +154,7 @@ export default withMermaid(defineConfig({
           .replace(/^-+|-+$/g, '');
 
         // 如果是数字开头，为了符合 HTML4 规范，加下划线前缀
-        return /^\d/.test(slug) ? '_' + encodeURIComponent(slug) : encodeURIComponent(slug);
+        return /^\d/.test(slug) ? '_' + slug : slug;
       }
     },
     config: (md) => {
