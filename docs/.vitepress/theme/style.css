@@ -159,7 +159,18 @@
 
 /* --- Global Sidebar Style Enhancements --- */
 
-/* 1. 图标注入 */
+/* 1. 右侧文章大纲 (Outline) 换行支持 */
+.VPDocOutlineItem .outline-link {
+  white-space: normal !important;
+  height: auto !important;
+  line-height: 1.4 !important;
+  padding: 4px 0 !important;
+  display: block !important;
+  text-overflow: clip !important;
+  overflow: visible !important;
+}
+
+/* 2. 左侧文件树图标注入 */
 .VPSidebarItem.collapsible > .item .text::before {
   content: "📂";
   margin-right: 8px;
