@@ -337,10 +337,6 @@ flowchart TD
     - ID 2 的数据在位置 `Start + 2 * (数据宽度)`。
 ---
 
-这份笔记整理如下，我为你优化了层级结构，修复了重复的段落，并保持了Markdown语法的规范性，使其更符合技术文档的阅读逻辑。
-
----
-
 ## 5. BKD 树
 
 **BKD 树 (Block K-D Tree)** 是 Elasticsearch（准确地说是底层 Lucene 6.0 之后）处理 **数值类型 (Numeric)**、**日期类型 (Date)** 和 **地理位置 (Geo-point)** 的核心数据结构。
@@ -837,11 +833,11 @@ Elasticsearch 的搜索默认是 `query_then_fetch` 策略。
 
 2. **Fetch Phase (取回阶段)**：
 
-- 协调节点也就是负责接收请求的那个节点，它收集了所有分片返回的 DocID。
-    
-- 假设你要取前 10 条（默认 `size: 10`），协调节点会确定全局的 Top 10 是哪些 DocID。
-    
-- **关键动作**：协调节点再次向相关分片发送请求——**“请把 DocID 为 10, 25 的 `_source` 给我，且我只要 `item_id` 和 `evaluator_score` 这两个字段。”**
+	- 协调节点也就是负责接收请求的那个节点，它收集了所有分片返回的 DocID。
+	    
+	- 假设你要取前 10 条（默认 `size: 10`），协调节点会确定全局的 Top 10 是哪些 DocID。
+	    
+	- **关键动作**：协调节点再次向相关分片发送请求——**“请把 DocID 为 10, 25 的 `_source` 给我，且我只要 `item_id` 和 `evaluator_score` 这两个字段。”**
 
 ### 7.2 Fetch Phase
 

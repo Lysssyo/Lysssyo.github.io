@@ -22,13 +22,13 @@ ES 的高性能搜索源于 **倒排索引 (Inverted Index)**。
 
 ### 核心概念对比
 
-| MySQL | Elasticsearch | 说明 |
-| :--- | :--- | :--- |
-| Table | Index | 索引是文档的集合，类似于表。 |
-| Row | Document | 文档是数据的最小单元，JSON 格式。 |
-| Column | Field | 字段是 JSON 中的属性。 |
-| Schema | Mapping | Mapping 定义字段类型、分词器等约束。 |
-| SQL | DSL | Domain Specific Language，JSON 风格的查询。 |
+| MySQL  | Elasticsearch | 说明                                   |
+| :----- | :------------ | :----------------------------------- |
+| Table  | Index         | 索引是文档的集合，类似于表。                       |
+| Row    | Document      | 文档是数据的最小单元，JSON 格式。                  |
+| Column | Field         | 字段是 JSON 中的属性。                       |
+| Schema | Mapping       | Mapping 定义字段类型、分词器等约束。               |
+| SQL    | DSL           | Domain Specific Language，JSON 风格的查询。 |
 
 ---
 
@@ -43,10 +43,10 @@ ES 的高性能搜索源于 **倒排索引 (Inverted Index)**。
 
 **优化组合**：写入时使用 `ik_max_word` 以存全数据，搜索时使用 `search_analyzer: ik_smart` 以理解意图。
 
-| **阶段** | **设置** | **行为** | **目的** |
-| :--- | :--- | :--- | :--- |
-| **存入数据** | `analyzer: ik_max_word` | 把“清华大学”拆成：`清华大学`, `清华`, `大学` | **尽可能存全**，确保搜关键词能命中。 |
-| **用户搜索** | `search_analyzer: ik_smart` | 把“清华大学”不拆碎，视为一个整体语义。 | **理解用户意图**，减少语义无关的噪音。 |
+| **阶段**   | **设置**                      | **行为**                       | **目的**                |
+| :------- | :-------------------------- | :--------------------------- | :-------------------- |
+| **存入数据** | `analyzer: ik_max_word`     | 把“清华大学”拆成：`清华大学`, `清华`, `大学` | **尽可能存全**，确保搜关键词能命中。  |
+| **用户搜索** | `search_analyzer: ik_smart` | 把“清华大学”不拆碎，视为一个整体语义。         | **理解用户意图**，减少语义无关的噪音。 |
 
 ### Mapping 关键属性
 

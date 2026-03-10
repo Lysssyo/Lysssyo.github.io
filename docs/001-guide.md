@@ -8,6 +8,8 @@ Welcome Back!
 
 ## Updated Recently
 
+- 2026年3月10日：总结翻墙原理 [“翻墙”基本原理](01-计算机基础/计算机网络/“翻墙”基本原理.md)
+- 2026年2月末：简历要点总结 [01简历要点](98-Private/01简历要点.md)
 - 2026年2月8日：基于 Gemini Deep Research [030 - Apache Kafka 深度剖析](04-中间件/MessageQueue/030%20-%20Apache%20Kafka%20深度剖析.md)
 - 2026年2月8日： ElasticSearch 和 clickhouse 各个场景下的对比 [060-OLAP 查询与计算对比：ClickHouse vs. Elasticsearch](06-场景设计/060-OLAP%20查询与计算对比：ClickHouse%20vs.%20Elasticsearch.md)
 - 2026年2月7日：厘清 ES 的 BKD 树底层实现以及过滤路径，厘清 ES 的两阶段检索，厘清 ES 的多索引结构并行求交集，生产、优化文档 [070- Elasticsearch 实现 cozeloop 实验结果过滤](04-中间件/Elasticsearch/070-%20Elasticsearch%20实现%20cozeloop%20实验结果过滤.md)、[020-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/020-Elasticsearch%20核心数据结构.md)、[040-Elasticsearch 读写链路](04-中间件/Elasticsearch/040-Elasticsearch%20读写链路.md)
@@ -61,6 +63,15 @@ Welcome Back!
 - [ ] [中序遍历-迭代法](https://leetcode.cn/problems/kth-smallest-element-in-a-bst/description/?envType=study-plan-v2&envId=top-100-liked)
 - [ ] [前序-中序构造树](https://leetcode.cn/problems/construct-binary-tree-from-preorder-and-inorder-traversal/description/?envType=study-plan-v2&envId=top-100-liked)
 - [ ] [路径之和](https://leetcode.cn/studyplan/top-100-liked/)
+- [ ] [分割回文串](https://leetcode.cn/problems/palindrome-partitioning/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [寻找旋转排序数组中的最小值](https://leetcode.cn/problems/find-minimum-in-rotated-sorted-array/?envType=study-plan-v2&envId=top-100-liked)看题解
+- [ ] [寻找两个正序数组的中位数](https://leetcode.cn/problems/median-of-two-sorted-arrays/description/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [堆排序](https://leetcode.cn/problems/kth-largest-element-in-an-array?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [前k个高频](https://leetcode.cn/problems/top-k-frequent-elements/submissions/700622289/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [跳跃游戏Ⅱ](https://leetcode.cn/problems/jump-game-ii/submissions/701788659/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [划分字母区间](https://leetcode.cn/problems/partition-labels/submissions/701798249/?envType=study-plan-v2&envId=top-100-liked)
+- [ ] [最长公共子序列](https://leetcode.cn/problems/longest-common-subsequence/description/?envType=study-plan-v2&envId=top-100-liked) 注意设 dp 数组的大小时，设多 1 可以使代码简洁
+- [ ] [最长递增子序列](https://leetcode.cn/problems/longest-increasing-subsequence?envType=study-plan-v2&envId=top-100-liked)
 
 
 ## Quick Reference

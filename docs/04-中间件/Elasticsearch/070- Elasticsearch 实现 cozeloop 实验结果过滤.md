@@ -297,6 +297,7 @@ GET /expt_turn_result_filter/_search
 }
 ```
 
+
 **⚠️ 为什么性能差？**
 
 - **Full Scan**: 它会遍历所有文档。
@@ -304,6 +305,37 @@ GET /expt_turn_result_filter/_search
 - **Source Load**: 它必须从磁盘加载巨大的 `_source` JSON 并反序列化，无法利用我们之前讨论的 BKD 树或倒排索引。
     
 - **Latency**: 这种查询在数据量上百万后，耗时通常以“秒”甚至“分钟”计。
+
+如果key写死，例如：
+
+```json
+"evaluator_score": {
+  "type": "object",
+  "dynamic": true,
+  "properties": {
+    "key1": { "type": "float" }, // 这是一个写死的、高频使用的统计列
+    "key2": { "type": "float" }    // 也是写死的
+  }
+}
+```
+
+那么查询的时候可以这样：
+
+```json
+{
+  "aggs": {
+    "avg_total": {
+      "avg": {
+        "script": {
+          "source": "(doc['evaluator_score.key1'].value + doc['evaluator_score.key2'].value + doc['evaluator_score.key3'].value) / 3"
+        }
+      }
+    }
+  }
+}
+```
+
+这样就能走 docValue
 
 ##### 方案二：预计算，写入avg
 

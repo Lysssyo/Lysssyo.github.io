@@ -251,7 +251,7 @@ WHERE
 
 **ClickHouse 是怎么执行的？**
 
-1. **主键索引过滤 (Primary Key Pruning)**： 你的表 `ORDER BY (expt_id, ...)`。CK 首先利用稀疏索引（`.idx` 文件）快速定位到 `expt_id = '759...'` 所在的那几个 **Data Part**（数据块）。
+1. **主键索引过滤 (Primary Key Pruning)**： 你的表 `ORDER BY (expt_id, ...)`。CK 首先利用稀疏索引（`.idx` 文件）快速定位到 `expt_id = '759...'` 所在的那几个 Granule 
     
     - _效果_：直接过滤掉 99.9% 的无关数据块。
         
