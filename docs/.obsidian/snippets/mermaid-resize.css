@@ -1,0 +1,7 @@
+/* 方案A：最常用 - 强制填满宽度，保持比例（推荐） */
+.mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block;
+  margin: 0 auto;
+}

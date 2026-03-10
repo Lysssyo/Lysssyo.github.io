@@ -1,6 +1,7 @@
 {
   "enabledCssSnippets": [
     "code-no-wrap",
-    "fix-line-break"
+    "fix-line-break",
+    "mermaid-resize"
   ]
 }
