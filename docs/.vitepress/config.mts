@@ -146,8 +146,8 @@ export default withMermaid(defineConfig({
         const slug = str
           .trim()
           .toLowerCase()
-          // 核心正则：匹配 空格、点、英文冒号、中文冒号、英文括号、中文括号
-          .replace(/[\s.:：()（）]+/g, '-') 
+          // 核心正则：匹配 空格、点、英文冒号、中文冒号、英文括号、中文括号、百分号
+          .replace(/[\s.:：()（）%]+/g, '-') 
           // 将连续的多个横线合并为一个
           .replace(/-+/g, '-')
           // 去掉开头和结尾的横线
