@@ -196,7 +196,7 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
               try {
                 decoded = decodeURIComponent(hash);
               } catch (e) {
-                console.warn(`[VitePress] Malformed URI in hash: ${hash} at ${pageData.relativePath}`);
+                console.warn(`[VitePress] Malformed URI in hash: ${hash}`);
               }
               
               // 使用与上面 anchor.slugify 完全一致的逻辑处理链接
