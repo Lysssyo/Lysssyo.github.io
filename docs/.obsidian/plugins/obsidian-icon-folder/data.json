@@ -51,7 +51,6 @@
   "80-人工智能": "LiFolder",
   "81-量化": "LiFolder",
   "96-杂项": "LiFolder",
-  "97-运动健身": "LiFolder",
   "98-Private": "LiFolder",
   "99-关联树": "LiFolder",
   "96-杂项/010-建站": "LiFolder",
@@ -62,5 +61,6 @@
   "04-中间件/ClickHouse": "LiFolder",
   "04-中间件/Elasticsearch/030-段合并.md": "LiFile",
   "06-场景设计": "LiFolder",
-  "06-场景设计/01-cozeLoop专项": "LiFolder"
+  "06-场景设计/01-cozeLoop专项": "LiFolder",
+  "98-Private/97-运动健身": "LiFolder"
 }
