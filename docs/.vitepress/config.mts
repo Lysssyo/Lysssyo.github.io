@@ -16,7 +16,7 @@ const sidebarConfig = generateSidebar({
   documentRootPath: 'docs',
   useTitleFromFileHeading: true,
   collapsed: true,
-  excludeByGlobPattern: ['index.md', '.gitignore', '98-Private/**', 'chat.md','保险箱.md', 'guide.md','001-guide.md']
+  excludeByGlobPattern: ['index.md', '.gitignore', '98-Private/**', 'chat.md','保险箱.md', 'guide.md','001-guide.md','library.md']
 })
 
 // 递归查找侧边栏中的第一个有效链接
@@ -112,7 +112,8 @@ export default withMermaid(defineConfig({
     nav: [
       { text: 'Home', link: '/' },
       { text: '知识库', link: firstLink },
-      { text: '私有保险箱', link: '/保险箱' }
+      { text: '私有保险箱', link: '/保险箱' },
+      { text: '图书馆预约', link: '/library' }
     ],
 
     sidebar: sidebarConfig,
