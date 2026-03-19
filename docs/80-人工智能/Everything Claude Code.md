@@ -74,7 +74,7 @@ sequenceDiagram
 | `Notification`     | 需要你授权时（如询问是否允许执行 `rm -rf`）       | 自定义授权提示、发送系统通知                      |
 |                    |                                  |                                     |
 
-**更多信息**：[everything-claude-code示例]([https://github.com/affaan-m/everything-claude-code/tree/main/hooks](https://github.com/Lysssyo/everything-claude-code/tree/main/hooks))
+**更多信息**：[everything-claude-code示例](https://github.com/Lysssyo/everything-claude-code/tree/main/hooks)
 
 ---
 
