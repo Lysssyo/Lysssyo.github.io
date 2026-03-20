@@ -155,7 +155,7 @@ page.on("response", handle_response)   # 注册监听器：每次收到网络响
 
 **`page.on("response", handle_response)`：**
 - 事件监听器。每当页面收到任何 HTTP 响应，都会自动调用 `handle_response`。
-- 这是**回调函数（Callback）**模式：把函数本身作为参数传给另一个函数，由它在合适的时机调用。
+- 这是**回调函数（Callback）** 模式：把函数本身作为参数传给另一个函数，由它在合适的时机调用。
 
 ### 登录流程
 
@@ -178,24 +178,72 @@ page.wait_for_url(lambda url: "libbooking.gzhu.edu.cn" in url and "errorMsg" not
 ```
 
 **`wait_for_url` 传 lambda：**
+
 `lambda url: ...` 是匿名函数，这里用于传入一个**判断条件**而非固定字符串，当 URL 满足条件时等待结束。
 
-### 提取凭据
+### 三个凭据是什么、怎么拿、怎么用
+
+图书馆系统是 **Java Web + 前端 SPA + REST API** 的混合架构，每层有自己的身份标识：
+
+```
+浏览器                       服务器
+  │── Cookie: JSESSIONID ──▶ Java Tomcat 会话层（识别"你是哪个 Session"）
+  │── Cookie: ic-cookie  ──▶ 智慧图书馆前端层（ic 系统自己的状态标识）
+  └── Header: token      ──▶ /ic-web/* REST API 层（接口级鉴权）
+```
+
+三层都通过，服务器才返回数据。
+
+**JSESSIONID 和 ic-cookie** —— 登录成功后浏览器自动存入 Cookie，从浏览器上下文直接读取：
 
 ```python
-# 从浏览器 Cookie 中提取
 cookies = context.cookies()
+# 每个 cookie 是个字典：{"name": "JSESSIONID", "value": "ABC123", "domain": "..."}
+
 jsessionid = next((c["value"] for c in cookies if c["name"] == "JSESSIONID"), "")
 #            ↑ 生成器表达式：遍历 cookies，找到名字是 JSESSIONID 的，取其 value
 #            next(..., "") ：取第一个结果，找不到则返回空字符串
-
-# 如果监听器没截到 token，从 localStorage 读
-if not captured_token:
-    captured_token = page.evaluate("window.localStorage.getItem('token')")
-    # page.evaluate() 在浏览器里执行 JS 代码并返回结果
+ic_cookie  = next((c["value"] for c in cookies if c["name"] == "ic-cookie"), "")
 ```
 
+**token** —— 藏在登录后某个 API 响应的 JSON 体里，不是 Cookie，需要主动截获。代码用两道保险：
+
+```python
+# 第一道：网络拦截（主路径）——在导航开始之前注册，"飞行途中"截获
+page.on("response", handle_response)
+
+def handle_response(response):
+    nonlocal captured_token
+    if "ic-web/auth/userInfo" in response.url and response.status == 200:
+        data = response.json()
+        captured_token = data.get("data", {}).get("token")
+        # 登录成功后前端自动请求 /auth/userInfo，响应 JSON 里就带着 token
+
+# 第二道：读 localStorage（兜底）——前端 JS 也会把 token 存进去
+if not captured_token:
+    captured_token = page.evaluate("window.localStorage.getItem('token')")
+    # page.evaluate() 在浏览器里执行这段 JS 并把结果返回给 Python
+```
+
+拦截器比 localStorage 更早拿到 token（请求刚回来就截了），但万一时序问题没截到，兜底方案从 localStorage 补取。
+
+**三个凭据的使用方式：**
+
+```python
+headers = {
+    "Cookie": f"JSESSIONID={jsid}; ic-cookie={ic}",  # 两个 cookie 放 Cookie 请求头
+    "token": token,        # token 放自定义请求头（不是 Authorization，是图书馆系统自定义的）
+    "User-Agent": "...",
+}
+requests.get(url, headers=headers)   # 后续所有 API 请求都带这个 headers
+```
+
+**为什么不直接用账号密码请求 API：**
+
+图书馆用的是学校 **CAS 统一认证**（单点登录），登录流程涉及多次重定向、动态 JS 渲染，纯 `requests` 无法模拟。Playwright 驱动真实浏览器走完 SSO 流程，把"认证成功的状态"提取出来交给 `requests` 使用——借浏览器登录，借 `requests` 操作 API。
+
 **`next(generator, default)`：**
+
 在生成器/迭代器里取第一个满足条件的元素，找不到时返回默认值，避免 `StopIteration` 报错。
 
 ### `finally` 块
@@ -265,6 +313,7 @@ def parse_lib_time(val):
 ### 预约状态机：三种场景
 
 图书馆 API 返回两种状态码：
+
 - `8450`：未来预约（已预约但还没到时间）
 - `8452`：进行中预约（当前正在使用）
 
@@ -333,75 +382,3 @@ requests.post(url, headers=headers, json=payload)
 ```
 
 两者效果相同，`json=` 更简洁；`data=json.dumps()` 在需要精确控制请求体格式时使用。
-
----
-
-## 六、GitHub Actions Workflow：reserve.yml
-
-```yaml
-on:
-  repository_dispatch:
-    types: [fc-timer-trigger]   # 同 daily-smart-brief，阿里云 FC 发事件触发
-  workflow_dispatch:             # 支持手动触发
-
-jobs:
-  reserve:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies
-        run: |
-          pip install requests playwright
-          python -m playwright install chromium   # 单独下载 Chromium 浏览器二进制文件
-
-      - name: Run reservation script
-        uses: nick-fields/retry@v3
-        env:
-          LIB_USER:    ${{ secrets.LIB_USER }}    # Secrets：敏感信息
-          LIB_PASS:    ${{ secrets.LIB_PASS }}
-          LIB_SEAT_ID: ${{ vars.LIB_SEAT_ID }}    # Variables：非敏感配置（明文可见）
-        with:
-          timeout_minutes: 15
-          max_attempts: 3
-          retry_wait_seconds: 60
-          command: |
-            export PYTHONPATH=$PYTHONPATH:$(pwd)   # 确保 import config 能找到根目录的模块
-            python refresh-all.py
-```
-
-**`python -m playwright install chromium`：**
-Playwright 的浏览器内核需要单独下载，不包含在 pip 包里。每次 GitHub Actions 运行都在全新的虚拟机上，所以每次都要执行这一步。
-
-**Secrets vs Variables：**
-
-| | Secrets | Variables |
-|---|---|---|
-| 用途 | 密码、Token 等敏感信息 | 座位 ID 等非敏感配置 |
-| 日志中显示 | 自动脱敏（`***`） | 明文显示 |
-| 访问语法 | `${{ secrets.KEY }}` | `${{ vars.KEY }}` |
-
-**`export PYTHONPATH=$PYTHONPATH:$(pwd)`：**
-把当前目录加入 Python 的模块搜索路径，等价于 `sys.path.append(os.getcwd())`，确保 `from config import Config` 能找到 `config.py`。
-
----
-
-## 七、新 Python 概念汇总
-
-| 概念 | 出处 | 说明 |
-|---|---|---|
-| `@classmethod` + `cls` | config.py | 无需实例化即可调用的类方法 |
-| `raise ValueError` | config.py | 主动抛出异常，让调用方用 try/except 处理 |
-| `nonlocal` | login.py | 嵌套函数修改外层（非全局）变量 |
-| 事件回调 `page.on(...)` | login.py | 把函数作为参数传入，由框架在合适时机调用 |
-| `page.evaluate("JS代码")` | login.py | 在浏览器上下文中执行 JS 并返回结果 |
-| `next(generator, default)` | login.py | 从迭代器取第一个满足条件的元素 |
-| `finally` | login.py | 无论成功失败都执行，用于释放资源 |
-| `timezone` + `timedelta` | utils.py | 定义时区、进行时间加减运算 |
-| `strptime` / `strftime` | utils.py | 字符串 ↔ datetime 互相转换 |
-| `isinstance(val, (int, float))` | utils.py | 检查变量是否属于某个类型 |
-| `lambda` 作为条件 | login.py | 将匿名函数作为判断条件传入 `wait_for_url` |
