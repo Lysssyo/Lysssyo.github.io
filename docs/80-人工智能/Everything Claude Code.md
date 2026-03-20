@@ -175,3 +175,9 @@ To resume the original: claude -r <session-id>
 
 在终端**前台交互式**运行该命令即可回到原始对话（不能后台执行，因为 Claude Code 需要交互式终端）。
 
+### 其他 Tricks
+
+> https://mp.weixin.qq.com/s/XopaISgwzSgoqZctym_Ajg
+
+包括 `/rewind`,`/remote control`,`/insights`,`/simplify`，`loop`等。
+
