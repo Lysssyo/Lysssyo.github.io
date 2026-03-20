@@ -573,7 +573,7 @@ fc.py 传入的 `task_type` 在 workflow 里通过 `github.event.client_payload.
 
 ### Secrets 注入机制
 
-API Key 等敏感信息存在 GitHub 仓库的 **Settings → Secrets**，workflow 通过 `${{ secrets.KEY_NAME }}` 读取并注入为环境变量。这样代码里不出现任何密钥，CI 环境也能安全使用。
+API Key 等敏感信息存在 GitHub 仓库的 **Settings → Secrets**，workflow 通过 `secrets.KEY_NAME` 读取并注入为环境变量。这样代码里不出现任何密钥，CI 环境也能安全使用。
 
 ### `always()` 的作用
 
