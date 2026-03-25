@@ -8,24 +8,13 @@ Welcome Back!
 
 ## Updated Recently
 
+- 2026年3月25日：xv6-lab2，trace 部分 [lab2](01-计算机基础/操作系统/xv6-2020-labs/lab2.md)
+- 2026年3月20日：再次过 python 语法基础，整理两个简单 python 项目 [daily-smart-brief](02-编程语言基础/python/简单项目学习/daily-smart-brief.md) [lib-reserve](02-编程语言基础/python/简单项目学习/lib-reserve.md)
+- 2026年3月18日：了解系统调用底层原理 [xv6 系统调用底层原理](01-计算机基础/操作系统/xv6%20系统调用底层原理.md)
+- 2026年3月17日：了解指令集、芯片与操作系统的关系 [指令集、芯片与操作系统的底层协同](01-计算机基础/操作系统/指令集、芯片与操作系统的底层协同.md)
 - 2026年3月10日：总结翻墙原理 [“翻墙”基本原理](01-计算机基础/计算机网络/“翻墙”基本原理.md)
-- 2026年2月末：简历要点总结 [01简历要点](98-Private/01简历要点.md)
-- 2026年2月8日：基于 Gemini Deep Research [030 - Apache Kafka 深度剖析](04-中间件/MessageQueue/030%20-%20Apache%20Kafka%20深度剖析.md)
-- 2026年2月8日： ElasticSearch 和 clickhouse 各个场景下的对比 [060-OLAP 查询与计算对比：ClickHouse vs. Elasticsearch](06-场景设计/060-OLAP%20查询与计算对比：ClickHouse%20vs.%20Elasticsearch.md)
-- 2026年2月7日：厘清 ES 的 BKD 树底层实现以及过滤路径，厘清 ES 的两阶段检索，厘清 ES 的多索引结构并行求交集，生产、优化文档 [070- Elasticsearch 实现 cozeloop 实验结果过滤](04-中间件/Elasticsearch/070-%20Elasticsearch%20实现%20cozeloop%20实验结果过滤.md)、[020-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/020-Elasticsearch%20核心数据结构.md)、[040-Elasticsearch 读写链路](04-中间件/Elasticsearch/040-Elasticsearch%20读写链路.md)
-- 2026年2月5日：基于 coze-loop 探索 ClickHouse 的生产实践 [030-ClickHouse 实现 cozeloop 实验结果过滤](04-中间件/ClickHouse/030-ClickHouse%20实现%20cozeloop%20实验结果过滤.md) （待润色）
-- 2026年2月5日：基于 Gemini 整理笔记 [020-ClickHouse 的变更操作详解](04-中间件/ClickHouse/020-ClickHouse%20的变更操作详解.md)
-- 2026年2月5日：过 python 基础语法 [基础语法](02-编程语言基础/python/基础语法.md)
-- 2026年2月4日：整理 ClickHouse 核心数据结构 [010-ClickHouse 核心数据结构与存储架构](04-中间件/ClickHouse/010-ClickHouse%20核心数据结构与存储架构.md)
-- 2026年2月3日：整理 Elasticsearch 核心数据结构 [020-Elasticsearch 核心数据结构](04-中间件/Elasticsearch/020-Elasticsearch%20核心数据结构.md)
-- 2026年1月28日：~~基于 Gemini Deep Research 和 Gemini 学习辅导 构建的报告~~（废弃）
-- 2026年1月27日：基于 Gemini Deep Research 构建的报告 [Skill](80-人工智能/Skill.md)
-- 2026年1月27日：基于 Gemini Deep Research 构建的报告 [MCP](80-人工智能/MCP.md)
-- 2026年1月26日：Function Call demo [Function Call](80-人工智能/Function%20Call.md)
 
 ## TODO
-
-2026年1月27日：
 
 - [x] 魔法方法、鸭子类型补充学习，enumerate和另一个的区别
 - [ ] coze-loop的数据集版本发布方案，对比Apollo：Apollo怎么做的，coze-loop怎么做的（注意总结 MVCC ，copy-on-write ， 零拷贝，RocketMQ异步链路，冷热查询链路）
