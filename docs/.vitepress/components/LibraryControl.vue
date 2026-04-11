@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const FC_URL = 'https://libraryion-ctrl-gvjqodsukd.cn-hongkong.fcapp.run/'
+const FC_URL = 'https://libraryion-ctrl-pzjqodsuid.us-west-1.fcapp.run/'
 const SEAT_OFFSET = 101267703
 
 const statusLoading = ref(true)
