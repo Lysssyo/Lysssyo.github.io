@@ -40,7 +40,7 @@ date modified: 2026-01-16 00:08:29
 
 ```bash
   cd apollo/release/deployment/docker-compose
-  docker compose -f docker-compose.yml -f docker-compose-local.yml --env-file .env --profile redis --profile mysql --profile clickhouse --profile minio --profile rmq --profile faas up -dofile faas up -d
+  docker compose -f docker-compose.yml -f docker-compose-local.yml --env-file .env --profile redis --profile mysql --profile clickhouse --profile minio --profile rmq --profile faas up -d
   docker ps   # 确认 Healthy
   
   # 停止全部容器（需要时）
@@ -69,11 +69,11 @@ date modified: 2026-01-16 00:08:29
     		-L 10909:127.0.0.1:10909 `
     		-L 40629:172.18.0.2:40629 `
     		-L 9000:127.0.0.1:9000 `
-    	root@109.123.253.38
+    	root@84.247.146.84
     ```
 
 	>[!TIP]
-	>109.123.253.38为服务器公网ip
+	> 84.247.146.84为服务器公网ip
 	>
 	> root密码为[服务器密码](../../98-Private/密码串.md#服务器密码)
 	
@@ -91,13 +91,14 @@ $env:PWD = (Get-Location).Path
 $env:PATH = "C:\\Program Files\\Go\\bin;$env:PATH"
 
 # 3) 端口映射环境变量（对应 WSL Compose 的端口暴露）
-$env:COZE_LOOP_REDIS_DOMAIN="109.123.253.38";  $env:COZE_LOOP_REDIS_PORT="6379"; $env:COZE_LOOP_REDIS_PASSWORD="cozeloop-redis"
-$env:COZE_LOOP_MYSQL_DOMAIN="109.123.253.38";  $env:COZE_LOOP_MYSQL_PORT="3306"; $env:COZE_LOOP_MYSQL_USER="root";  $env:COZE_LOOP_MYSQL_PASSWORD="cozeloop-mysql"; $env:COZE_LOOP_MYSQL_DATABASE="cozeloop-mysql"
-$env:COZE_LOOP_CLICKHOUSE_DOMAIN="109.123.253.38";  $env:COZE_LOOP_CLICKHOUSE_PORT="9000"; $env:COZE_LOOP_CLICKHOUSE_USER="default";  $env:COZE_LOOP_CLICKHOUSE_PASSWORD="cozeloop-clickhouse"; $env:COZE_LOOP_CLICKHOUSE_DATABASE="cozeloop-clickhouse"
-$env:COZE_LOOP_OSS_PROTOCOL="http";  $env:COZE_LOOP_OSS_DOMAIN="109.123.253.38"; $env:COZE_LOOP_OSS_PORT="9001";  $env:COZE_LOOP_OSS_REGION="us-east-1";  $env:COZE_LOOP_OSS_USER="root"; $env:COZE_LOOP_OSS_PASSWORD="cozeloop-minio";  $env:COZE_LOOP_OSS_BUCKET="cozeloop-minio"
+$env:COZE_LOOP_REDIS_DOMAIN="84.247.146.84";  $env:COZE_LOOP_REDIS_PORT="6379"; $env:COZE_LOOP_REDIS_PASSWORD="cozeloop-redis"
+$env:COZE_LOOP_MYSQL_DOMAIN="84.247.146.84";  $env:COZE_LOOP_MYSQL_PORT="3306"; $env:COZE_LOOP_MYSQL_USER="root";  $env:COZE_LOOP_MYSQL_PASSWORD="cozeloop-mysql"; $env:COZE_LOOP_MYSQL_DATABASE="cozeloop-mysql"
+$env:COZE_LOOP_CLICKHOUSE_DOMAIN="84.247.146.84";  $env:COZE_LOOP_CLICKHOUSE_PORT="9000"; $env:COZE_LOOP_CLICKHOUSE_USER="default";  $env:COZE_LOOP_CLICKHOUSE_PASSWORD="cozeloop-clickhouse"; $env:COZE_LOOP_CLICKHOUSE_DATABASE="cozeloop-clickhouse"
+$env:COZE_LOOP_OSS_PROTOCOL="http";  $env:COZE_LOOP_OSS_DOMAIN="84.247.146.84"; $env:COZE_LOOP_OSS_PORT="9001";  $env:COZE_LOOP_OSS_REGION="us-east-1";  $env:COZE_LOOP_OSS_USER="root"; $env:COZE_LOOP_OSS_PASSWORD="cozeloop-minio";  $env:COZE_LOOP_OSS_BUCKET="cozeloop-minio"
 $env:COZE_LOOP_RMQ_NAMESRV_DOMAIN="rocketmq-namesrv";  $env:COZE_LOOP_RMQ_NAMESRV_PORT="9876"
-$env:COZE_LOOP_PYTHON_FAAS_DOMAIN="109.123.253.38";  $env:COZE_LOOP_PYTHON_FAAS_PORT="8000"
-$env:COZE_LOOP_JS_FAAS_DOMAIN="109.123.253.38";  $env:COZE_LOOP_JS_FAAS_PORT="8001"
+$env:COZE_LOOP_PYTHON_FAAS_DOMAIN="84.247.146.84";  $env:COZE_LOOP_PYTHON_FAAS_PORT="8000"
+$env:COZE_LOOP_JS_FAAS_DOMAIN="84.247.146.84";  $env:COZE_LOOP_JS_FAAS_PORT="8001"
+$env:HTTP_PROXY="http://127.0.0.1:7897"; $env:HTTPS_PROXY="http://127.0.0.1:7897"
 
 # 4) 进入 backend 模块（有 go.mod）
  cd D:\\coze-loop\\backend
@@ -173,9 +174,9 @@ cd root/apollo
 git pull
 
 # 停止dev组合
-docker compose -f release/deployment/docker-compose/docker-compose.yml \\
-  -f release/deployment/docker-compose/docker-compose-dev.yml \\
-  --env-file release/deployment/docker-compose/.env \\
+docker compose -f release/deployment/docker-compose/docker-compose.yml \
+  -f release/deployment/docker-compose/docker-compose-dev.yml \
+  --env-file release/deployment/docker-compose/.env \
   --profile "*" down
     
 # 手动删卷    
@@ -185,9 +186,9 @@ docker volume rm coze-loop-nginx-data
 make compose-up-dev
 
 # 或者这个
-docker compose -f release/deployment/docker-compose/docker-compose.yml \\
-  -f release/deployment/docker-compose/docker-compose-dev.yml \\
-  --env-file release/deployment/docker-compose/.env \\
+docker compose -f release/deployment/docker-compose/docker-compose.yml \
+  -f release/deployment/docker-compose/docker-compose-dev.yml \
+  --env-file release/deployment/docker-compose/.env \
   --profile "*" up -d
   
 # 手动启动app、nginx（如果没有启动）
@@ -268,3 +269,11 @@ $env:https_proxy="http://127.0.0.1:33210"
 TODO：
 
 1. ID生成器
+
+
+
+## 文件上传 DNS解析
+
+![image.png](https://keith-knowledge-base.oss-accelerate.aliyuncs.com/20260414004856251.png)
+
+文件上传会上传到 s3.zl6544hx.asia 这个域名，要给这个域名做好DNS解析，解析到正确的ip
