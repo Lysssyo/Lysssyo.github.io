@@ -30,6 +30,7 @@ const lastResult = ref('')
 const logDate = ref(todayInShanghai())
 const logLines = ref<string[]>([])
 const logsLoaded = ref(false)
+const logModalOpen = ref(false)
 const msg = ref('')
 const msgType = ref<MsgType>('success')
 
@@ -143,6 +144,7 @@ async function fetchTodayLogs() {
   try {
     const data = await apiRequest<LogResponse>(`/logs?date=${logDate.value}`)
     logLines.value = data.lines || []
+    logModalOpen.value = true
     showMsg('今日日志已加载', 'success')
   } catch (e) {
     showMsg(errorMessage(e, '获取日志失败'), 'error')
@@ -170,46 +172,35 @@ function showMsg(text: string, type: MsgType) {
   window.setTimeout(() => { msg.value = '' }, 3000)
 }
 
+function closeLogModal() {
+  logModalOpen.value = false
+}
+
 onMounted(() => fetchStatus(true))
 </script>
 
 <template>
   <div class="lib-wrapper">
     <div class="lib-shell">
-      <section class="lib-card hero-card">
-        <div>
-          <div class="lib-eyebrow">Library Automation</div>
-          <h2>图书馆预约控制台</h2>
-          <p class="lib-subtext">连接 lib.zl6544hx.asia，管理自动预约、座位和运行日志。</p>
-        </div>
-        <button class="lib-secondary-btn" :disabled="isBusy" @click="fetchStatus(false)">
-          {{ statusLoading ? '刷新中...' : '刷新状态' }}
-        </button>
-      </section>
-
       <div v-if="statusLoading" class="lib-card lib-loading">加载中...</div>
 
       <template v-else>
-        <section class="lib-grid">
-          <div class="lib-card stat-card">
-            <span class="stat-label">自动预约</span>
-            <strong :class="triggerEnabled ? 'text-ok' : 'text-muted'">
-              {{ triggerEnabled ? '已开启' : '已关闭' }}
-            </strong>
-          </div>
-          <div class="lib-card stat-card">
-            <span class="stat-label">当前座位</span>
-            <strong>{{ seatId || '未设置' }}</strong>
-            <small v-if="rawSeatId">内部 ID：{{ rawSeatId }}</small>
-          </div>
-          <div class="lib-card stat-card">
-            <span class="stat-label">最近运行</span>
-            <strong>{{ lastRunAt || '暂无记录' }}</strong>
-            <small>{{ lastResult || '无结果' }}</small>
-          </div>
-        </section>
-
         <section class="lib-card lib-controls">
+          <div class="control-head">
+            <div>
+              <div class="section-title">预约控制</div>
+              <div class="run-meta">
+                最近运行：{{ lastRunAt || '暂无记录' }}
+                <span v-if="lastResult" :class="lastResult === 'success' ? 'result-ok' : 'result-warn'">
+                  {{ lastResult }}
+                </span>
+              </div>
+            </div>
+            <button class="lib-secondary-btn compact" :disabled="isBusy" @click="fetchTodayLogs">
+              {{ actionLoading === 'logs' ? '加载中...' : '查看今日日志' }}
+            </button>
+          </div>
+
           <div class="lib-section">
             <div class="lib-section-label">自动预约开关</div>
             <button
@@ -244,28 +235,37 @@ onMounted(() => fetchStatus(true))
             <button class="lib-run-btn" :disabled="isBusy" @click="runOnce">
               {{ actionLoading === 'run' ? '启动中...' : '立即执行一次' }}
             </button>
-            <button class="lib-secondary-btn" :disabled="isBusy" @click="fetchTodayLogs">
-              {{ actionLoading === 'logs' ? '加载中...' : '查看今日日志' }}
+            <button class="lib-secondary-btn" :disabled="isBusy" @click="fetchStatus(false)">
+              {{ statusLoading ? '刷新中...' : '刷新状态' }}
             </button>
           </div>
 
           <div v-if="msg" class="lib-msg" :class="msgType">{{ msg }}</div>
         </section>
 
-        <section class="lib-card log-card">
-          <div class="log-header">
-            <div>
-              <div class="lib-section-label">今日日志</div>
-              <p>{{ logDate }}，全部日志</p>
-            </div>
-            <button class="lib-secondary-btn compact" :disabled="isBusy" @click="fetchTodayLogs">刷新日志</button>
-          </div>
+        <Teleport to="body">
+          <div v-if="logModalOpen" class="log-modal-mask" @click.self="closeLogModal">
+            <section class="log-modal" role="dialog" aria-modal="true" aria-labelledby="log-title">
+              <div class="log-header">
+                <div>
+                  <div id="log-title" class="section-title">今日日志</div>
+                  <p>{{ logDate }}，全部日志</p>
+                </div>
+                <div class="log-actions">
+                  <button class="lib-secondary-btn compact" :disabled="isBusy" @click="fetchTodayLogs">
+                    {{ actionLoading === 'logs' ? '刷新中...' : '刷新' }}
+                  </button>
+                  <button class="log-close-btn" type="button" aria-label="关闭日志弹窗" @click="closeLogModal">×</button>
+                </div>
+              </div>
 
-          <pre v-if="logLines.length" class="log-box">{{ logLines.join('\n') }}</pre>
-          <div v-else class="log-empty">
-            {{ logsLoaded ? '今天暂无日志' : '点击“查看今日日志”加载当天全部日志' }}
+              <pre v-if="logLines.length" class="log-box">{{ logLines.join('\n') }}</pre>
+              <div v-else class="log-empty">
+                {{ logsLoaded ? '今天暂无日志' : '正在加载日志...' }}
+              </div>
+            </section>
           </div>
-        </section>
+        </Teleport>
       </template>
     </div>
   </div>
@@ -274,54 +274,23 @@ onMounted(() => fetchStatus(true))
 <style scoped>
 .lib-wrapper {
   min-height: calc(100vh - var(--vp-nav-height));
-  background:
-    radial-gradient(circle at top left, rgba(16, 185, 129, 0.16), transparent 34rem),
-    linear-gradient(135deg, var(--vp-c-bg) 0%, var(--vp-c-bg-soft) 100%);
-  padding: 48px 16px;
+  background: var(--vp-c-bg);
+  padding: 32px 16px;
 }
 
 .lib-shell {
-  width: min(960px, 100%);
+  width: min(720px, 100%);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 .lib-card {
-  background: color-mix(in srgb, var(--vp-c-bg) 92%, transparent);
+  background: var(--vp-c-bg);
   border: 1px solid var(--vp-c-divider);
-  border-radius: 18px;
-  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.08);
-}
-
-.hero-card {
-  padding: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.lib-eyebrow {
-  color: #059669;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.hero-card h2 {
-  margin: 0 0 8px;
-  font-size: 28px;
-  line-height: 1.2;
-}
-
-.lib-subtext {
-  margin: 0;
-  color: var(--vp-c-text-2);
-  font-size: 14px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .lib-loading {
@@ -330,50 +299,59 @@ onMounted(() => fetchStatus(true))
   text-align: center;
 }
 
-.lib-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.stat-card {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.stat-label,
 .lib-section-label {
   color: var(--vp-c-text-2);
   font-size: 13px;
   font-weight: 700;
 }
 
-.stat-card strong {
-  color: var(--vp-c-text-1);
-  font-size: 20px;
-  word-break: break-word;
-}
-
-.stat-card small {
-  color: var(--vp-c-text-3);
-  word-break: break-word;
-}
-
-.text-ok {
-  color: #059669 !important;
-}
-
-.text-muted {
-  color: var(--vp-c-text-2) !important;
-}
-
 .lib-controls {
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
+}
+
+.control-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.section-title {
+  color: var(--vp-c-text-1);
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.run-meta {
+  margin-top: 8px;
+  color: var(--vp-c-text-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.run-meta span {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.result-ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.result-warn {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
 }
 
 .lib-section {
@@ -498,10 +476,6 @@ onMounted(() => fetchStatus(true))
   color: var(--vp-c-danger);
 }
 
-.log-card {
-  padding: 24px;
-}
-
 .log-header {
   display: flex;
   align-items: center;
@@ -510,14 +484,56 @@ onMounted(() => fetchStatus(true))
   margin-bottom: 14px;
 }
 
+.log-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .log-header p {
   margin: 4px 0 0;
   color: var(--vp-c-text-3);
   font-size: 13px;
 }
 
+.log-modal-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.log-modal {
+  width: min(920px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 18px;
+  background: var(--vp-c-bg);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+}
+
+.log-close-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 999px;
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-2);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .log-box {
-  max-height: 460px;
+  flex: 1;
+  min-height: 280px;
   margin: 0;
   padding: 16px;
   overflow: auto;
@@ -538,16 +554,65 @@ onMounted(() => fetchStatus(true))
 }
 
 @media (max-width: 720px) {
-  .hero-card,
   .log-header,
-  .lib-input-row,
-  .lib-action-row {
+  .log-actions {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .lib-grid {
-    grid-template-columns: 1fr;
+  .lib-wrapper {
+    padding: 16px 12px;
+  }
+
+  .lib-controls {
+    padding: 18px;
+  }
+
+  .control-head {
+    gap: 12px;
+  }
+
+  .lib-input-row,
+  .lib-action-row {
+    gap: 8px;
+  }
+
+  .lib-submit-btn,
+  .lib-run-btn,
+  .lib-secondary-btn {
+    padding: 10px 12px;
+    white-space: nowrap;
+  }
+
+  .log-modal-mask {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .log-modal {
+    width: 100%;
+    max-height: 92vh;
+    padding: 18px;
+    border-right: none;
+    border-bottom: none;
+    border-left: none;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .log-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .log-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+  }
+
+  .log-box {
+    min-height: 55vh;
+    font-size: 11px;
   }
 }
 </style>
