@@ -442,8 +442,6 @@ System.out.println((char) buffer.get());
 
 #### 字符串与 ByteBuffer 互转
 
-![](../0bc1ee74-45c7-4366-bca6-33a8793fecf6.png)
-
 ```java
 ByteBuffer buffer1 = StandardCharsets.UTF_8.encode("你好"); 
 ByteBuffer buffer2 = Charset.forName("utf-8").encode("你好");
